@@ -25,20 +25,24 @@ Le workflow `ci.yml` exécute un seul job sur une machine Ubuntu :
 
 1. **Checkout** : récupération du code.
 2. **Installation de uv** : gestionnaire de dépendances Python du projet (action `astral-sh/setup-uv`, avec cache).
-3. **`uv sync`** : installation de Python 3.12 et des dépendances, à partir de `pyproject.toml` et `uv.lock`.
+3. **`uv sync --locked`** : installation de Python 3.12 et des dépendances, à partir de `pyproject.toml` et `uv.lock`. L'option `--locked` fait échouer la chaîne si `uv.lock` n'est plus à jour, ce qui garantit que la CI teste exactement les versions verrouillées.
 4. **`uv run ruff check`** : analyse statique (erreurs, imports, bugs probables).
 5. **`uv run ruff format --check`** : vérifie le formatage sans modifier les fichiers.
-6. **`uv run pytest --cov`** : exécute tous les tests et mesure la couverture.
+6. **`uv run pytest`** : exécute tous les tests et mesure la couverture.
 
 Si une étape échoue, les suivantes ne sont pas exécutées et la CI est rouge.
+
+## Sécurité de la chaîne
+
+Le workflow déclare `permissions: contents: read` : le jeton GitHub de la CI ne peut que lire le code (principe du moindre privilège, bonne pratique de sécurité de la chaîne d'approvisionnement).
 
 ## Exécuter les mêmes commandes en local
 
 ```bash
-uv sync
+uv sync --locked
 uv run ruff check
 uv run ruff format --check
-uv run pytest --cov
+uv run pytest
 ```
 
 Pour corriger automatiquement le formatage : `uv run ruff format`. Pour corriger les erreurs de lint corrigeables : `uv run ruff check --fix`.

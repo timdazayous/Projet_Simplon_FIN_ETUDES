@@ -45,10 +45,10 @@ Les secrets restent uniquement dans `.env` (ignoré par Git).
 Prérequis : [uv](https://docs.astral.sh/uv/). Les commandes ci-dessous sont celles exécutées par la CI à chaque push et PR (voir [docs/ci.md](docs/ci.md)).
 
 ```bash
-uv sync                      # installe Python 3.12 et les dépendances
-uv run ruff check            # lint
+uv sync --locked     # installe Python 3.12 et les dépendances (échoue si uv.lock est périmé)
+uv run ruff check     # lint
 uv run ruff format --check   # vérifie le formatage
-uv run pytest --cov          # tests et couverture
+uv run pytest      # tests et couverture
 ```
 
 ## Contraintes
