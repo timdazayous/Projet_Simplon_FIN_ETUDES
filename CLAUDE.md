@@ -80,7 +80,9 @@ Ne pas trancher sans en discuter avec le développeur :
 ## Organisation du travail
 
 - **Rôles** : Opus planifie, découpe en **Issues GitHub** (critères d'acceptation + compétence visée), relit les PR et tient la doc à jour. Sonnet code une Issue par branche et ouvre une PR. Le développeur décide et **lit chaque PR avant fusion** : il doit pouvoir la défendre seul devant le jury.
-- **Pilotage agile** : GitHub Projects (backlog, kanban, burndown). Ces traces servent de preuves pour C16.
+- **GitHub** : Opus gère les relectures (commentaire de contrôle référentiel sur la PR), la fusion (après le « ok » du développeur), le Project et la fermeture des Issues. Chaque PR contient `Closes #N`.
+- **Worktree** : Sonnet travaille toujours dans un worktree, jamais dans le dossier principal, pour que les sessions ne se marchent pas dessus.
+- **Pilotage agile** : GitHub Projects (backlog, kanban, burn-up). Ces traces servent de preuves pour C16.
 - **Veille** : hebdomadaire, tracée dans `docs/veille/`.
 - **Petits pas** : une fonctionnalité à la fois, testée, commitée. Pas de gros refactor non demandé.
 - **Tests** : toute logique de données ou de modèle a ses tests pytest.
@@ -105,6 +107,10 @@ Ne pas trancher sans en discuter avec le développeur :
 
 Les bugs sont documentés avec symptôme, logs pertinents et résolution : l'un d'eux servira d'incident E5.
 
+## Mémo oral
+
+Dépôt privé séparé `timdazayous/memo-oral-simplon`, cloné dans `../memo-oral-simplon/`. Il contient des fiches question / réponse / alternative écartée / où regarder, classées par thème. **Opus l'alimente à chaque décision et à chaque PR relue**, y compris pour les petits choix (options de configuration, détails de sécurité…). Le JOURNAL garde les décisions pour le rapport ; le mémo garde tous les détails pour l'oral.
+
 ## Routage
 
 Ne charger que ce qui sert la tâche en cours, pour préserver le contexte.
@@ -114,7 +120,7 @@ Ne charger que ce qui sert la tâche en cours, pour préserver le contexte.
 | Planifier une Issue ou contrôler une PR / un livrable | Skill **`referentiel`** (`.claude/skills/referentiel/`) : ne charger que le bloc E1–E5 concerné |
 | Formulation exacte d'un critère | `referentiel/*.pdf` (local, non versionné ; lisible avec `pdftotext -layout`) |
 | Historique des décisions | `JOURNAL.md` |
-| Cours de la formation | Dossiers indiqués par le développeur au cas par cas |
+| Cours et TP de la formation | Dossiers frères dans `../` (ex. `docker-compose-prometheus-grafana`, `loki`, `uptime_kuma_init`, `EvidentlyAI_Tuto_Kim`, `TUTO_PG_VECTOR`, `Tuto_PySpark`, `TUTO_SELENIUM`, `Securite_JWT`, `SPHINX_INIT`, `Projet_AGILE`, `Projet_3_0_Prefect_MLFactory`, `HashicorpVault`, `tuto-traefik`) : lire seulement celui qui concerne la tâche, et préférer les outils déjà vus en formation à confort égal |
 
 **Règle** : toute Issue créée passe par la skill `referentiel` (mode planification), et toute PR est relue avec elle (mode contrôle).
 
