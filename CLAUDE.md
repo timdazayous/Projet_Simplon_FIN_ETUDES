@@ -122,9 +122,10 @@ Autres skills (RGPD, front accessible, MLOps…), plugins et serveurs MCP : **à
 
 ## Priorités actuelles
 
-1. ~~Structure du dépôt, `.gitignore`, `.env.example`, `README.md`, `JOURNAL.md`~~ (fait)
-2. Pilotage : GitHub Projects + Issues du backlog initial
-3. Veille : outil d'agrégation (RSS), sources qualifiées, gabarit de synthèse accessible, premier créneau hebdomadaire
-4. Preuve de concept Groq : appel simple, mesure de latence, gestion des quotas, bascule vers Ollama
-5. Déploiement de l'outil de ticketing en Docker (après choix GLPI / Zammad)
-6. Définition des catégories, puis générateur de tickets synthétiques
+Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https://github.com/users/timdazayous/projects/2), sprints de 2 semaines à partir du 2026-10-06, jalon « Phase 1 — Cadrage et fondations » (échéance 2026-11-02). Consulter les Issues avec `gh issue list` plutôt que de recopier leur contenu ici.
+
+- **Sprint 1** : #1 CI minimale (Sonnet), #7 méthode agile, #8 veille, #2 choix GLPI / Zammad
+- **Sprint 2** : #3 socle MkDocs (Sonnet), #4 POC Groq (Sonnet), #5 note de cadrage, #6 taxonomie
+- **Ensuite** : déploiement de l'outil de ticketing en Docker, générateur de tickets synthétiques
+
+Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`.

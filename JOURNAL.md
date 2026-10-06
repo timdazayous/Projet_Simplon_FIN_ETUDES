@@ -17,3 +17,9 @@
 **Contexte** : le dépôt GitHub est public ; les PDF du référentiel Simplon sont des documents de formation.
 **Choix / Cause** : dossier `referentiel/` ajouté au `.gitignore`.
 **Raison / Résolution** : ne pas rediffuser de documents dont la diffusion publique n'est pas prévue ; ils restent consultables en local.
+
+## 2026-10-06 — Mise en place du pilotage agile
+**Type** : décision
+**Contexte** : C16 exige un backlog, un kanban et un burndown disponibles tout au long du projet.
+**Choix / Cause** : Scrum adapté à un développeur seul, sprints de 2 semaines ; GitHub Project lié au dépôt (statuts Backlog, À faire, En cours, En revue, Terminé ; champs Estimation en points et Sprint) ; jalons par phase ; labels par épreuve. Backlog initial de 8 Issues rédigées avec la skill `referentiel` (critères d'acceptation issus du référentiel).
+**Raison / Résolution** : outil gratuit et intégré au dépôt, qui relie Issues, PR et CI. Alternatives écartées : Trello ou Jira (outil séparé du code, liens Issue/PR moins directs).
