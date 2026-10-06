@@ -111,11 +111,14 @@ Ne charger que ce qui sert la tâche en cours, pour préserver le contexte.
 
 | Tâche | Où regarder |
 |---|---|
-| Vérifier un critère du référentiel | `referentiel/*.pdf` (local, non versionné ; lisible avec `pdftotext`) |
+| Planifier une Issue ou contrôler une PR / un livrable | Skill **`referentiel`** (`.claude/skills/referentiel/`) : ne charger que le bloc E1–E5 concerné |
+| Formulation exacte d'un critère | `referentiel/*.pdf` (local, non versionné ; lisible avec `pdftotext -layout`) |
 | Historique des décisions | `JOURNAL.md` |
 | Cours de la formation | Dossiers indiqués par le développeur au cas par cas |
 
-Skills spécialisées (référentiel, RGPD, front accessible, MLOps…), plugins et serveurs MCP : **à définir ensemble**, puis à référencer ici.
+**Règle** : toute Issue créée passe par la skill `referentiel` (mode planification), et toute PR est relue avec elle (mode contrôle).
+
+Autres skills (RGPD, front accessible, MLOps…), plugins et serveurs MCP : **à définir ensemble**, puis à référencer ici.
 
 ## Priorités actuelles
 
