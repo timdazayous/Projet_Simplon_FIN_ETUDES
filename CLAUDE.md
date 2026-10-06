@@ -1,17 +1,19 @@
 # CLAUDE.md — Triage IA des tickets et alertes MSP
 
-Ce fichier donne le contexte du projet à Claude Code. À lire au début de chaque session.
+Contexte permanent du projet. Ce fichier reste **court** : les détails par domaine se chargent à la demande (voir « Routage »). Le mettre à jour dès qu'une décision est prise.
 
 ## Contexte
 
-Projet de fin de formation **Développeur en intelligence artificielle (Simplon)**, présenté devant un jury de certification. Le développeur est en reconversion professionnelle et travaille dans un MSP (prestataire d'infogérance) qui utilise Autotask, Zabbix et Rewst. Le projet s'appuie sur cette expérience terrain avec un **commanditaire fictif** : un MSP d'une trentaine de personnes gérant une soixantaine de PME clientes.
+Projet de fin de formation **Développeur en intelligence artificielle (Simplon)**. Soutenance devant jury en **juillet 2027** ; objectif : projet **terminé début 2027**, puis peaufinage et répétitions. Le développeur est en reconversion, travaille dans un MSP (Autotask, Zabbix, Rewst) et est **débutant en front-end**. Rythme : 2 à 3 h par semaine minimum, plus quand possible.
 
-**Problème :** un MSP reçoit des centaines de tickets et d'alertes par jour dans une file unique. Le tri (catégorie, urgence, équipe, recherche de cas similaires) est manuel, lent et source d'erreurs de routage.
+**Commanditaire fictif** : un MSP d'une trentaine de personnes gérant une soixantaine de PME clientes.
 
-**Solution :** une application qui, pour chaque ticket entrant :
-1. le **classe** (catégorie, urgence, équipe destinataire) via un modèle entraîné dans le projet ;
-2. **suggère une piste de résolution** via un LLM, à partir des tickets résolus et de la documentation technique ;
-3. **apprend des corrections** des techniciens (boucle de feedback → ré-entraînement).
+**Problème** : des centaines de tickets et d'alertes par jour dans une file unique ; tri manuel (catégorie, urgence, équipe, cas similaires), lent et source d'erreurs de routage.
+
+**Solution** : pour chaque ticket entrant, l'application
+1. le **classe** (catégorie, urgence, équipe) via un modèle entraîné dans le projet ;
+2. **suggère une piste de résolution** via un LLM, à partir des tickets résolus et de la documentation ;
+3. **apprend des corrections** des techniciens (feedback → ré-entraînement).
 
 L'outil aide le technicien à décider, il n'agit jamais seul. Pas de remédiation automatique.
 
@@ -19,70 +21,79 @@ L'outil aide le technicien à décider, il n'agit jamais seul. Pas de remédiati
 
 Chaque brique existe parce qu'une compétence l'exige. Ne pas simplifier une brique sans vérifier qu'elle ne valide pas un critère.
 
-| Bloc | Ce qu'il impose concrètement |
-|---|---|
-| **E1** — Données | Extraction depuis **5 types de sources** (API REST, BDD SQL, fichier, scraping, big data). Requêtes SQL documentées. Agrégation et nettoyage. Modélisation Merise + BDD conforme RGPD. API REST de mise à disposition des données, sécurisée. |
-| **E2** — Veille et service IA | Veille hebdomadaire tracée. Benchmark de services IA (y compris écartés). Installation, configuration et monitoring d'un service IA existant. |
-| **E3** — Modèle | API exposant le modèle (sécurisée, testée). Monitoring du modèle. **Tests automatisés sur données, entraînement et évaluation.** **Chaîne CI qui ré-entraîne et évalue le modèle.** |
-| **E4** — Application | User stories, méthode agile, accessibilité (RGAA/WCAG), OWASP Top 10, tests, CI/CD. |
-| **E5** — Production | Monitoring de l'application, journalisation, **résolution documentée d'un incident réel**. |
+| Bloc | Brique du projet | Points exigés souvent oubliés |
+|---|---|---|
+| **E1** (C1–C5) Données | Extraction 5 sources, agrégation, BDD, API de données | Spécifications techniques écrites ; requêtes SQL **et** SQL big data documentées (choix + optimisations) ; Merise ; registre RGPD + procédures de tri avec fréquence ; install reproductible |
+| **E2** (C6–C8) Service IA | Groq / Ollama | Veille ≥ 1 h/semaine tracée, synthèses accessibles ; benchmark avec services **écartés** et **éco-responsabilité** ; monitoring du service |
+| **E3** (C9–C13) Modèle | Classifieur maison | API sécurisée + tests de tous les endpoints ; monitoring + alertes ; tests données/entraînement/évaluation ; **CI qui ré-entraîne, évalue et livre par PR avec rapport** |
+| **E4** (C14–C19) Application | Front React + API | User stories avec critères d'accessibilité (RGAA/WCAG) ; diagramme de flux de données ; **POC en pré-production** ; agile tracé (backlog, kanban, burndown) ; éco-conception ; OWASP ; CI + CD avec build de conteneurs |
+| **E5** (C20–C21) Production | Monitoring + incident | Métriques + seuils d'alerte documentés ; incident réel reproduit, débogué **depuis l'outil de suivi** (Issue), corrigé par PR |
+
+**Transverse** : toute documentation livrée doit respecter les recommandations d'accessibilité (Valentin Haüy, Microsoft).
+
+**Livrables** : rapports professionnels E1, E2, E3, E4 + documentation E5. Rédigés **au fil de l'eau**, pas à la fin.
 
 ## Contraintes dures
 
 - **Zéro budget** : outils gratuits ou open source uniquement.
-- **Pas de GPU**, ni en local ni en CI. Tout entraînement doit tenir sur CPU dans un runner GitHub Actions gratuit (durée limitée par job).
-- **Langue** : les tickets et l'interface sont en **français**.
-- **RGPD** : les tickets contiennent des données personnelles (noms, e-mails, IP, parfois identifiants collés en clair). Elles sont **pseudonymisées avant tout traitement**, et impérativement **avant tout envoi à un service externe** (Groq). Ne jamais logger de contenu de ticket brut.
-- **Secrets** : uniquement dans `.env` (ignoré par Git). Maintenir un `.env.example` à jour sans valeurs réelles.
+- **Pas de GPU**, ni en local ni en CI. Entraînement sur CPU dans un runner GitHub Actions gratuit.
+- **Langue** : tickets et interface en **français**.
+- **RGPD** : données personnelles **pseudonymisées avant tout traitement** et **avant tout envoi externe** (Groq). Ne jamais logger de contenu de ticket brut.
+- **Secrets** : uniquement dans `.env` (ignoré par Git). Maintenir `.env.example` à jour sans valeurs réelles.
+- **Dépôt public** : ne jamais committer de données réelles, de secrets ni les PDF du référentiel (`referentiel/`, ignoré).
 
 ## Choix techniques actés
 
-**Deux briques IA distinctes — ne pas les fusionner :**
+**Deux briques IA distinctes, ne pas les fusionner :**
+- **Classifieur entraîné dans le projet** (E3) : baseline TF-IDF + régression logistique (scikit-learn), puis CamemBERT distillé si le gain est démontré. Ré-entraîné par la CI. Jamais remplacé par un service externe.
+- **Service LLM existant** (E2) pour résumé et suggestion : **Groq** (free tier) en principal, **Ollama** local en secours. Une seule abstraction compatible OpenAI, fournisseur choisi par `LLM_PROVIDER=groq|ollama`. Erreurs 429 gérées (retry/backoff, repli Ollama).
 
-- **Classifieur entraîné dans le projet** : baseline TF-IDF + régression logistique (scikit-learn), puis CamemBERT distillé si le gain est démontré. C'est ce modèle que la CI ré-entraîne. Il est central pour E3 : il ne doit jamais être remplacé par un service externe.
-- **Service LLM existant** pour résumé et suggestion : **Groq** (free tier) en principal, **Ollama** en local en secours. Les deux exposent une API compatible OpenAI : le code passe par une seule abstraction et le fournisseur se choisit par variable d'environnement (ex. `LLM_PROVIDER=groq|ollama`). Gérer explicitement les erreurs 429 (quotas Groq) avec retry/backoff et repli possible sur Ollama.
+**Modèles de classification « JEV-like »** (ex. modèles Ollama nimble/tev1, Cloudflare Clef) : classifieurs peu verbeux, bon marché sur gros volume, qui renvoient des scores de confiance. Uniquement **comparateurs dans le benchmark** et sujet de veille, jamais en remplacement du classifieur maison.
 
-**Modèles de décision (type Jev : modèles Ollama nimble/tev1, Cloudflare Clef)** : uniquement comme **comparateurs dans le benchmark**, face au classifieur maison. Ne pas les utiliser pour remplacer le classifieur.
+**Données sensibles en base** :
+| Donnée | Traitement |
+|---|---|
+| Mots de passe utilisateurs | Hachage **Argon2id** (ou bcrypt), jamais réversible |
+| Données personnelles des tickets | **Pseudonymisation** (HMAC à clé) pour entraînement et Groq ; **chiffrement réversible** si affichage nécessaire ; tables séparées dans le modèle Merise |
+| Secrets collés dans les tickets | Détectés et **masqués à l'import**, jamais stockés |
 
-**Stack envisagée :**
-- Python, FastAPI, PostgreSQL (+ pgvector pour la recherche sémantique)
-- PySpark sur Parquet partitionné pour la source big data
-- DVC (données/modèles), MLflow (expérimentations), Evidently (dérive)
-- pytest, GitHub Actions
-- Prometheus + Grafana, Loki (logs)
-- Front : à définir (React probable), accessibilité RGAA obligatoire
+Plus : clés dans `.env` uniquement, rôles PostgreSQL séparés (application / lecture seule), script de purge avec durée de conservation.
 
-## Sources de données
+**Environnements** :
+- **Local** : `docker compose` avec la stack complète (référence pour les procédures d'installation).
+- **Pré-production** : hébergement gratuit allégé (API + front + Postgres). Hébergeur à choisir plus tard. D'ici là, **toute la configuration passe par variables d'environnement**.
 
-| Type | Source | Rôle |
-|---|---|---|
-| API REST | Outil de ticketing open source en Docker (GLPI ou Zammad) simulant le SI du MSP | Tickets courants |
-| BDD | Base de ce même outil, interrogée en SQL direct | Historique, agrégats |
-| Fichier | Datasets publics de tickets support (Kaggle, Bitext…) | Enrichir le corpus |
-| Scraping | Microsoft Learn, forums techniques (respect robots.txt et CGU, temporisation) | Base de connaissances |
-| Big data | Historique et logs volumineux en Parquet, traités en PySpark | Volume, suivi du modèle |
+**Documentation** : OpenAPI généré par FastAPI pour les API ; **MkDocs** pour la doc projet (Markdown → HTML accessible, publié sur GitHub Pages par la CI). Sphinx écarté (plus lourd). Thème à vérifier en veille.
 
-**Corpus** : tickets synthétiques réalistes générés à partir de l'expérience MSP du développeur, injectés dans l'outil de ticketing. Garder un jeu de test écrit différemment (datasets publics traduits ou tickets reformulés) pour éviter que le modèle n'apprenne seulement le style du générateur.
+**Stack** : Python 3.12 (uv), FastAPI, PostgreSQL + pgvector, PySpark / Spark SQL sur Parquet (dans Docker), DVC, MLflow, Evidently, pytest, GitHub Actions, Prometheus + Grafana, Loki, **React** pour le front.
 
 ## Décisions encore ouvertes
 
-Ne pas trancher ces points sans en discuter avec le développeur :
+Ne pas trancher sans en discuter avec le développeur :
 - GLPI ou Zammad
-- Liste définitive des catégories, niveaux d'urgence et équipes (conditionne toute la labellisation)
+- Liste définitive des catégories, niveaux d'urgence et équipes (conditionne la labellisation)
 - Répartition du corpus : généré / traduit / écrit à la main
 - Volume cible de l'historique Parquet
+- Hébergeur de pré-production
+- Ergonomie et design du front (à débattre ensemble, le développeur débute en React)
 
-## Façon de travailler
+## Organisation du travail
 
-- **Langue** : échanger en français. Code, noms de variables et de fichiers en anglais. Documentation du projet (README, docs/) en français, car destinée au jury.
-- **Pédagogie** : le développeur doit pouvoir défendre chaque choix devant le jury. Quand tu proposes une solution, explique brièvement *pourquoi* et mentionne l'alternative écartée. Préfère un code simple et lisible à un code astucieux.
+- **Rôles** : Opus planifie, découpe en **Issues GitHub** (critères d'acceptation + compétence visée), relit les PR et tient la doc à jour. Sonnet code une Issue par branche et ouvre une PR. Le développeur décide et **lit chaque PR avant fusion** : il doit pouvoir la défendre seul devant le jury.
+- **Pilotage agile** : GitHub Projects (backlog, kanban, burndown). Ces traces servent de preuves pour C16.
+- **Veille** : hebdomadaire, tracée dans `docs/veille/`.
 - **Petits pas** : une fonctionnalité à la fois, testée, commitée. Pas de gros refactor non demandé.
-- **Tests** : toute logique de données ou de modèle est accompagnée de tests pytest.
-- **Sécurité** : penser OWASP par défaut (validation des entrées, authentification des API, pas de secrets en dur).
+- **Tests** : toute logique de données ou de modèle a ses tests pytest.
+- **Sécurité** : OWASP par défaut (validation des entrées, authentification des API, pas de secrets en dur).
+
+## Façon d'échanger
+
+- **Langue** : échanger en français. Code, variables et noms de fichiers en anglais. Documentation (README, docs/) en français, car destinée au jury.
+- **Pédagogie** : expliquer brièvement *pourquoi* chaque choix et mentionner l'alternative écartée. Préférer un code simple et lisible à un code astucieux. Expliquer davantage tout ce qui touche au front.
 
 ## Journal de projet
 
-Le fichier `JOURNAL.md` à la racine sert de matière première au rapport de certification (pilotage agile, choix techniques, incident E5). **Quand une décision technique est prise ou un bug significatif est résolu, propose une entrée à ajouter**, au format :
+`JOURNAL.md` sert de matière première aux rapports (pilotage, choix techniques, incident E5). **Quand une décision est prise ou un bug significatif résolu, proposer une entrée** :
 
 ```
 ## AAAA-MM-JJ — Titre court
@@ -92,11 +103,25 @@ Le fichier `JOURNAL.md` à la racine sert de matière première au rapport de ce
 **Raison / Résolution** : …
 ```
 
-Les bugs doivent être documentés avec symptôme, logs pertinents et résolution : l'un d'eux servira d'incident documenté pour E5.
+Les bugs sont documentés avec symptôme, logs pertinents et résolution : l'un d'eux servira d'incident E5.
+
+## Routage
+
+Ne charger que ce qui sert la tâche en cours, pour préserver le contexte.
+
+| Tâche | Où regarder |
+|---|---|
+| Vérifier un critère du référentiel | `referentiel/*.pdf` (local, non versionné ; lisible avec `pdftotext`) |
+| Historique des décisions | `JOURNAL.md` |
+| Cours de la formation | Dossiers indiqués par le développeur au cas par cas |
+
+Skills spécialisées (référentiel, RGPD, front accessible, MLOps…), plugins et serveurs MCP : **à définir ensemble**, puis à référencer ici.
 
 ## Priorités actuelles
 
-1. Structure du dépôt, `.gitignore`, `.env.example`, `README.md`, `JOURNAL.md`
-2. Preuve de concept Groq : appel simple, mesure de latence, gestion des quotas, bascule vers Ollama
-3. Déploiement de l'outil de ticketing en Docker (après choix GLPI / Zammad)
-4. Définition des catégories, puis générateur de tickets synthétiques
+1. ~~Structure du dépôt, `.gitignore`, `.env.example`, `README.md`, `JOURNAL.md`~~ (fait)
+2. Pilotage : GitHub Projects + Issues du backlog initial
+3. Veille : outil d'agrégation (RSS), sources qualifiées, gabarit de synthèse accessible, premier créneau hebdomadaire
+4. Preuve de concept Groq : appel simple, mesure de latence, gestion des quotas, bascule vers Ollama
+5. Déploiement de l'outil de ticketing en Docker (après choix GLPI / Zammad)
+6. Définition des catégories, puis générateur de tickets synthétiques
