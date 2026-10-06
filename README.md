@@ -40,6 +40,17 @@ cp .env.example .env   # puis renseigner les valeurs
 
 Les secrets restent uniquement dans `.env` (ignoré par Git).
 
+## Développement
+
+Prérequis : [uv](https://docs.astral.sh/uv/). Les commandes ci-dessous sont celles exécutées par la CI à chaque push et PR (voir [docs/ci.md](docs/ci.md)).
+
+```bash
+uv sync --locked     # installe Python 3.12 et les dépendances (échoue si uv.lock est périmé)
+uv run ruff check     # lint
+uv run ruff format --check   # vérifie le formatage
+uv run pytest      # tests et couverture
+```
+
 ## Contraintes
 
 - Zéro budget : outils gratuits ou open source.
