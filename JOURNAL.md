@@ -30,7 +30,7 @@
 **Choix / Cause** : GLPI 11 en Docker (images officielles, base MariaDB).
 **Raison / Résolution** : plus proche du métier d'un MSP (ITIL, parc, contrats, matrice urgence × impact) ; nettement plus léger que Zammad, qui exige au moins 4 Go de RAM à cause d'Elasticsearch (argument d'éco-responsabilité et de faisabilité sur un poste qui fait aussi tourner Spark et le monitoring) ; source MariaDB distincte de la base PostgreSQL du projet. Alternative écartée : Zammad. Comparaison complète dans `docs/decisions/outil-ticketing.md`.
 
-## 2026-10-08 — Organisation de la veille
+## 2026-10-07 — Organisation de la veille
 **Type** : décision
 **Contexte** : C6 exige une veille d'au moins 1 h par semaine, tracée, avec un outil d'agrégation cohérent avec les sources et le budget.
 **Choix / Cause** : trois thématiques liées au projet (services LLM et modèles légers, réglementation IA et données, outils/sécurité/accessibilité) ; 14 sources évaluées selon une grille de fiabilité ; agrégateur FreshRSS auto-hébergé en Docker (`tools/freshrss/`) ; séance d'1 h le week-end ; synthèses publiées sur le site de documentation.
