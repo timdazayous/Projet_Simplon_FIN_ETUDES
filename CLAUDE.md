@@ -65,12 +65,13 @@ Plus : clés dans `.env` uniquement, rôles PostgreSQL séparés (application / 
 
 **Documentation** : OpenAPI généré par FastAPI pour les API ; **MkDocs** pour la doc projet (Markdown → HTML accessible, publié sur GitHub Pages par la CI). Sphinx écarté (plus lourd). Thème à vérifier en veille.
 
+**Outil de ticketing** : **GLPI 11** en Docker (images officielles `glpi/glpi`, base MariaDB). Il fournit les sources API REST (API v2, OAuth2) et SQL direct. Zammad écarté (Elasticsearch, 4 Go de RAM minimum, orientation support client). Voir `docs/decisions/outil-ticketing.md`.
+
 **Stack** : Python 3.12 (uv), FastAPI, PostgreSQL + pgvector, PySpark / Spark SQL sur Parquet (dans Docker), DVC, MLflow, Evidently, pytest, GitHub Actions, Prometheus + Grafana, Loki, **React** pour le front.
 
 ## Décisions encore ouvertes
 
 Ne pas trancher sans en discuter avec le développeur :
-- GLPI ou Zammad
 - Liste définitive des catégories, niveaux d'urgence et équipes (conditionne la labellisation)
 - Répartition du corpus : généré / traduit / écrit à la main
 - Volume cible de l'historique Parquet
@@ -81,7 +82,7 @@ Ne pas trancher sans en discuter avec le développeur :
 
 - **Rôles** : Opus planifie, découpe en **Issues GitHub** (critères d'acceptation + compétence visée), relit les PR et tient la doc à jour. Sonnet code une Issue par branche et ouvre une PR. Le développeur décide et **lit chaque PR avant fusion** : il doit pouvoir la défendre seul devant le jury.
 - **GitHub** : Opus gère les relectures (commentaire de contrôle référentiel sur la PR), la fusion (après le « ok » du développeur), le Project et la fermeture des Issues. Chaque PR contient `Closes #N`.
-- **Worktree** : Sonnet travaille toujours dans un worktree, jamais dans le dossier principal, pour que les sessions ne se marchent pas dessus.
+- **Agents Sonnet** : Opus les lance lui-même (outil Agent, `model: sonnet`, `isolation: worktree`), sur demande du développeur, une Issue par agent. Ils travaillent toujours dans un worktree, jamais dans le dossier principal. Le prompt rappelle : lire CLAUDE.md, traiter l'Issue #N, tests verts, PR avec `Closes #N`.
 - **Pilotage agile** : GitHub Projects (backlog, kanban, burn-up). Ces traces servent de preuves pour C16.
 - **Veille** : hebdomadaire, tracée dans `docs/veille/`.
 - **Petits pas** : une fonctionnalité à la fois, testée, commitée. Pas de gros refactor non demandé.
@@ -130,8 +131,8 @@ Autres skills (RGPD, front accessible, MLOps…), plugins et serveurs MCP : **à
 
 Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https://github.com/users/timdazayous/projects/2), sprints de 2 semaines à partir du 2026-10-06, jalon « Phase 1 — Cadrage et fondations » (échéance 2026-11-02). Consulter les Issues avec `gh issue list` plutôt que de recopier leur contenu ici.
 
-- **Sprint 1** : #1 CI minimale (Sonnet), #7 méthode agile, #8 veille, #2 choix GLPI / Zammad
+- **Sprint 1** : ~~#1 CI minimale~~, ~~#2 choix de l'outil de ticketing (GLPI)~~, #7 méthode agile, #8 veille
 - **Sprint 2** : #3 socle MkDocs (Sonnet), #4 POC Groq (Sonnet), #5 note de cadrage, #6 taxonomie
-- **Ensuite** : déploiement de l'outil de ticketing en Docker, générateur de tickets synthétiques
+- **Ensuite** : déploiement de GLPI en Docker, générateur de tickets synthétiques
 
 Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`.

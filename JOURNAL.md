@@ -23,3 +23,9 @@
 **Contexte** : C16 exige un backlog, un kanban et un burndown disponibles tout au long du projet.
 **Choix / Cause** : Scrum adapté à un développeur seul, sprints de 2 semaines ; GitHub Project lié au dépôt (statuts Backlog, À faire, En cours, En revue, Terminé ; champs Estimation en points et Sprint) ; jalons par phase ; labels par épreuve. Backlog initial de 8 Issues rédigées avec la skill `referentiel` (critères d'acceptation issus du référentiel).
 **Raison / Résolution** : outil gratuit et intégré au dépôt, qui relie Issues, PR et CI. Alternatives écartées : Trello ou Jira (outil séparé du code, liens Issue/PR moins directs).
+
+## 2026-10-07 — Outil de ticketing : GLPI
+**Type** : décision
+**Contexte** : l'outil de ticketing simule le SI du MSP et fournit deux sources de données (API REST, SQL direct). Le développeur n'avait utilisé ni GLPI ni Zammad.
+**Choix / Cause** : GLPI 11 en Docker (images officielles, base MariaDB).
+**Raison / Résolution** : plus proche du métier d'un MSP (ITIL, parc, contrats, matrice urgence × impact) ; nettement plus léger que Zammad, qui exige au moins 4 Go de RAM à cause d'Elasticsearch (argument d'éco-responsabilité et de faisabilité sur un poste qui fait aussi tourner Spark et le monitoring) ; source MariaDB distincte de la base PostgreSQL du projet. Alternative écartée : Zammad. Comparaison complète dans `docs/decisions/outil-ticketing.md`.
