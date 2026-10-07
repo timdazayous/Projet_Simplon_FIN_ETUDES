@@ -1,6 +1,6 @@
 # Choix de l'outil de ticketing : GLPI ou Zammad
 
-**Statut** : en attente de décision · **Issue** : #2 · **Compétences** : C1 (contraintes des sources), C15 (choix des outils)
+**Statut** : **décidé — GLPI** (2026-10-07) · **Issue** : #2 · **Compétences** : C1 (contraintes des sources), C15 (choix des outils)
 
 ## Pourquoi ce choix compte
 
