@@ -40,3 +40,6 @@ Thumbs.db
 
 # Documents de formation (référentiel Simplon) : consultés localement, non diffusés
 referentiel/
+
+# Worktrees des agents de développement (copies de travail temporaires)
+.claude/worktrees/
