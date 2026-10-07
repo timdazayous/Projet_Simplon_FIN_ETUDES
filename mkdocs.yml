@@ -1,0 +1,28 @@
+site_name: Triage IA des tickets et alertes MSP
+site_description: Documentation du projet de fin de formation Développeur en intelligence artificielle (Simplon)
+site_url: https://timdazayous.github.io/Projet_Simplon_FIN_ETUDES/
+repo_url: https://github.com/timdazayous/Projet_Simplon_FIN_ETUDES
+repo_name: timdazayous/Projet_Simplon_FIN_ETUDES
+
+theme:
+  name: material
+  language: fr
+  features:
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search:
+      lang: fr
+
+nav:
+  - Accueil: index.md
+  - Pilotage:
+      - Méthode agile: pilotage.md
+      - Sprint 1: sprints/sprint-01.md
+  - Documentation: documentation.md
+  - Intégration continue: ci.md
+  - Décisions:
+      - Outil de ticketing: decisions/outil-ticketing.md

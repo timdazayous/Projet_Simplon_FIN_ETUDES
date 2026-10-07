@@ -62,6 +62,8 @@ Le développeur reste seul décisionnaire : aucune modification n'est fusionnée
 
 Les comptes rendus de sprint sont rangés dans `docs/sprints/` (un fichier par sprint).
 
+**Adaptation au contexte** : les durées indiquées sont des repères, pas des contraintes. Le développeur travaillant seul avec un assistant IA, plusieurs rituels peuvent se tenir dans la même séance (par exemple revue, rétrospective et planification du sprint suivant à la suite). Ce qui ne change pas : chaque rituel garde son objectif et laisse une trace écrite. Le développeur, certifié en méthode agile, ajuste ce cadre au besoin, et chaque ajustement est noté dans le compte rendu du sprint.
+
 ## Outils de pilotage
 
 ### Tableau de bord : GitHub Project
