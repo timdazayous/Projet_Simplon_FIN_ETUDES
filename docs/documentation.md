@@ -33,7 +33,7 @@ Le fichier `.github/workflows/docs.yml` définit deux jobs.
 
 Les permissions sont minimales : lecture du contenu pour le build ; les droits `pages: write` et `id-token: write` ne sont accordés qu'au job de déploiement, rattaché à l'environnement `github-pages`.
 
-Un bloc `concurrency` (groupe `pages`, sans annulation en cours) place les exécutions en file d'attente : deux envois rapprochés sur `main` ne lancent donc jamais deux déploiements Pages en parallèle.
+Le job de déploiement porte un bloc `concurrency` (groupe `pages`, sans annulation en cours) : deux envois rapprochés sur `main` ne lancent jamais deux déploiements Pages en parallèle. Ce bloc est limité au déploiement pour ne pas mettre en file d'attente, ni risquer d'annuler, les vérifications des Pull Requests.
 
 Le site publié est accessible à l'adresse : <https://timdazayous.github.io/Projet_Simplon_FIN_ETUDES/>.
 

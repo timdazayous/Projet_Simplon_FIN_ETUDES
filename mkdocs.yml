@@ -19,6 +19,9 @@ plugins:
 
 nav:
   - Accueil: index.md
+  - Pilotage:
+      - Méthode agile: pilotage.md
+      - Sprint 1: sprints/sprint-01.md
   - Documentation: documentation.md
   - Intégration continue: ci.md
   - Décisions:
