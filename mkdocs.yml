@@ -22,6 +22,10 @@ nav:
   - Pilotage:
       - Méthode agile: pilotage.md
       - Sprint 1: sprints/sprint-01.md
+  - Veille:
+      - Organisation: veille/index.md
+      - Sources: veille/sources.md
+      - Modèle de synthèse: veille/modele.md
   - Documentation: documentation.md
   - Intégration continue: ci.md
   - Décisions:
