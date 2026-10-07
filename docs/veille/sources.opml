@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head><title>Veille — Triage IA MSP</title></head>
+  <body>
+    <outline text="Réglementation IA et données">
+      <outline type="rss" text="CNIL — actualités" xmlUrl="https://www.cnil.fr/fr/rss.xml" htmlUrl="https://www.cnil.fr/fr"/>
+      <outline type="rss" text="AI Act Explorer" xmlUrl="https://artificialintelligenceact.eu/feed/" htmlUrl="https://artificialintelligenceact.eu/"/>
+    </outline>
+    <outline text="Services LLM et modèles">
+      <outline type="rss" text="Ollama — blog" xmlUrl="https://ollama.com/blog/rss.xml" htmlUrl="https://ollama.com/blog"/>
+      <outline type="rss" text="Ollama — versions" xmlUrl="https://github.com/ollama/ollama/releases.atom" htmlUrl="https://github.com/ollama/ollama/releases"/>
+      <outline type="rss" text="Hugging Face — blog" xmlUrl="https://huggingface.co/blog/feed.xml" htmlUrl="https://huggingface.co/blog"/>
+      <outline type="rss" text="Simon Willison" xmlUrl="https://simonwillison.net/atom/everything/" htmlUrl="https://simonwillison.net/"/>
+    </outline>
+    <outline text="Outils, sécurité et accessibilité">
+      <outline type="rss" text="CERT-FR" xmlUrl="https://www.cert.ssi.gouv.fr/feed/" htmlUrl="https://www.cert.ssi.gouv.fr/"/>
+      <outline type="rss" text="Access42" xmlUrl="https://access42.net/feed/" htmlUrl="https://access42.net/"/>
+      <outline type="rss" text="Astral (uv, ruff)" xmlUrl="https://astral.sh/blog/rss.xml" htmlUrl="https://astral.sh/blog"/>
+      <outline type="rss" text="Material for MkDocs — versions" xmlUrl="https://github.com/squidfunk/mkdocs-material/releases.atom" htmlUrl="https://github.com/squidfunk/mkdocs-material/releases"/>
+      <outline type="rss" text="Zensical — versions" xmlUrl="https://github.com/zensical/zensical/releases.atom" htmlUrl="https://github.com/zensical/zensical/releases"/>
+      <outline type="rss" text="GLPI — versions" xmlUrl="https://github.com/glpi-project/glpi/releases.atom" htmlUrl="https://github.com/glpi-project/glpi/releases"/>
+    </outline>
+  </body>
+</opml>

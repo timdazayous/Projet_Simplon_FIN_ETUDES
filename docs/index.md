@@ -27,6 +27,7 @@ L'outil aide le technicien à décider, il n'agit jamais seul.
 ## Dans cette documentation
 
 - [Pilotage](pilotage.md) : méthode agile, rituels et comptes rendus de sprint.
+- [Veille](veille/index.md) : veille technique et réglementaire, sources et synthèses hebdomadaires.
 - [Documentation](documentation.md) : comment ce site est construit et publié.
 - [Intégration continue](ci.md) : la chaîne qui vérifie chaque modification.
 - [Outil de ticketing](decisions/outil-ticketing.md) : choix entre GLPI et Zammad.
