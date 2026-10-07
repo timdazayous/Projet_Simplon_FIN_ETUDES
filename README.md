@@ -51,6 +51,16 @@ uv run ruff format --check   # vérifie le formatage
 uv run pytest      # tests et couverture
 ```
 
+## Documentation
+
+Site de documentation (HTML accessible, publié par la CI) : <https://timdazayous.github.io/Projet_Simplon_FIN_ETUDES/>. Détails dans [docs/documentation.md](docs/documentation.md).
+
+```bash
+uv sync --group docs          # installe MkDocs et le thème
+uv run mkdocs serve           # site local sur http://127.0.0.1:8000
+uv run mkdocs build --strict  # build identique à celui de la CI
+```
+
 ## Contraintes
 
 - Zéro budget : outils gratuits ou open source.
