@@ -63,7 +63,7 @@ Plus : clés dans `.env` uniquement, rôles PostgreSQL séparés (application / 
 - **Local** : `docker compose` avec la stack complète (référence pour les procédures d'installation).
 - **Pré-production** : hébergement gratuit allégé (API + front + Postgres). Hébergeur à choisir plus tard. D'ici là, **toute la configuration passe par variables d'environnement**.
 
-**Documentation** : OpenAPI généré par FastAPI pour les API ; **MkDocs** pour la doc projet (Markdown → HTML accessible, publié sur GitHub Pages par la CI). Sphinx écarté (plus lourd). Thème à vérifier en veille.
+**Documentation** : OpenAPI généré par FastAPI pour les API ; **MkDocs + Material** pour la doc projet, publiée sur GitHub Pages par la CI (https://timdazayous.github.io/Projet_Simplon_FIN_ETUDES/). Toute nouvelle page de `docs/` doit être ajoutée à la `nav` de `mkdocs.yml`. Material est en maintenance jusqu'à ~novembre 2026 : suivi dans #13. Sphinx écarté (plus lourd).
 
 **Outil de ticketing** : **GLPI 11** en Docker (images officielles `glpi/glpi`, base MariaDB). Il fournit les sources API REST (API v2, OAuth2) et SQL direct. Zammad écarté (Elasticsearch, 4 Go de RAM minimum, orientation support client). Voir `docs/decisions/outil-ticketing.md`.
 
@@ -131,8 +131,8 @@ Autres skills (RGPD, front accessible, MLOps…), plugins et serveurs MCP : **à
 
 Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https://github.com/users/timdazayous/projects/2), sprints de 2 semaines à partir du 2026-10-06, jalon « Phase 1 — Cadrage et fondations » (échéance 2026-11-02). Consulter les Issues avec `gh issue list` plutôt que de recopier leur contenu ici.
 
-- **Sprint 1** : ~~#1 CI minimale~~, ~~#2 choix de l'outil de ticketing (GLPI)~~, #7 méthode agile, #8 veille
-- **Sprint 2** : #3 socle MkDocs (Sonnet), #4 POC Groq (Sonnet), #5 note de cadrage, #6 taxonomie
+- **Sprint 1** (6 → 19 octobre) : ~~#1 CI~~, ~~#2 GLPI~~, ~~#3 MkDocs~~ (avancée du sprint 2), ~~#7 méthode agile~~ ; reste #8 veille. Revue et rétrospective le 19 octobre dans `docs/sprints/sprint-01.md`.
+- **Sprint 2** : #4 POC Groq (Sonnet), #5 note de cadrage, #6 taxonomie ; #13 (veille Material / Zensical) en backlog.
 - **Ensuite** : déploiement de GLPI en Docker, générateur de tickets synthétiques
 
 Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`.
