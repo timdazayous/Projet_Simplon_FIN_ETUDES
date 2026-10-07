@@ -1,0 +1,26 @@
+# Agrégateur de veille FreshRSS (outil de veille, indépendant de l'application).
+# Démarrage : docker compose -f tools/freshrss/docker-compose.yml up -d
+# Interface : http://localhost:8081
+
+services:
+  freshrss:
+    image: freshrss/freshrss:latest
+    container_name: freshrss
+    restart: unless-stopped
+    ports:
+      # Écoute uniquement sur la machine locale : l'agrégateur n'est pas exposé au réseau
+      - "127.0.0.1:8081:80"
+    volumes:
+      - data:/var/www/FreshRSS/data
+      - extensions:/var/www/FreshRSS/extensions
+    environment:
+      TZ: Europe/Paris
+      # Rafraîchissement des flux aux minutes 1 et 31 de chaque heure, tant que le conteneur tourne
+      CRON_MIN: "1,31"
+    logging:
+      options:
+        max-size: "10m"
+
+volumes:
+  data:
+  extensions:
