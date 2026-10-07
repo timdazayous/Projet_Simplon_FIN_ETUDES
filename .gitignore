@@ -40,3 +40,6 @@ Thumbs.db
 
 # Documents de formation (référentiel Simplon) : consultés localement, non diffusés
 referentiel/
+
+# Documentation générée
+site/
