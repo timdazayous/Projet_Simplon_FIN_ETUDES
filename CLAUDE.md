@@ -84,7 +84,7 @@ Ne pas trancher sans en discuter avec le développeur :
 - **GitHub** : Opus gère les relectures (commentaire de contrôle référentiel sur la PR), la fusion (après le « ok » du développeur), le Project et la fermeture des Issues. Chaque PR contient `Closes #N`.
 - **Agents Sonnet** : Opus les lance lui-même (outil Agent, `model: sonnet`, `isolation: worktree`), sur demande du développeur, une Issue par agent. Ils travaillent toujours dans un worktree, jamais dans le dossier principal. Le prompt rappelle : lire CLAUDE.md, traiter l'Issue #N, tests verts, PR avec `Closes #N`.
 - **Pilotage agile** : GitHub Projects (backlog, kanban, burn-up). Ces traces servent de preuves pour C16.
-- **Veille** : hebdomadaire, tracée dans `docs/veille/`.
+- **Veille** : 1 h par semaine le week-end, agrégateur FreshRSS (`tools/freshrss/`, sources dans `docs/veille/sources.opml`), synthèses dans `docs/veille/AAAA-MM-JJ.md` à ajouter à la nav. Une information qui impose une action devient une Issue.
 - **Petits pas** : une fonctionnalité à la fois, testée, commitée. Pas de gros refactor non demandé.
 - **Tests** : toute logique de données ou de modèle a ses tests pytest.
 - **Sécurité** : OWASP par défaut (validation des entrées, authentification des API, pas de secrets en dur).
