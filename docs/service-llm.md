@@ -41,7 +41,7 @@ Le fichier `.env` est ignoré par Git : la clé ne doit **jamais** être écrite
 ### Installer Ollama (secours, facultatif)
 
 1. Installer Ollama depuis <https://ollama.com>.
-2. Télécharger le modèle par défaut, assez petit pour fonctionner sur CPU : `ollama pull qwen3:4b`.
+2. Télécharger le modèle par défaut, assez petit pour fonctionner sur CPU : `ollama pull gemma3:4b` (modèle sans raisonnement, retenu après mesure ; voir « Résultats de mesure »).
 3. Activer le repli en mettant `LLM_FALLBACK_PROVIDER=ollama` dans `.env`.
 
 ## Variables d'environnement
@@ -54,7 +54,7 @@ Le fichier `.env` est ignoré par Git : la clé ne doit **jamais** être écrite
 | `GROQ_BASE_URL` | Adresse de l'API Groq | `https://api.groq.com/openai/v1` |
 | `GROQ_MODEL` | Modèle Groq | `openai/gpt-oss-20b` |
 | `OLLAMA_BASE_URL` | Adresse d'Ollama | `http://localhost:11434/v1` |
-| `OLLAMA_MODEL` | Modèle Ollama | `qwen3:4b` |
+| `OLLAMA_MODEL` | Modèle Ollama | `gemma3:4b` |
 | `LLM_MAX_RETRIES` | Nouvelles tentatives après le premier essai | `5` |
 | `LLM_BACKOFF_BASE_SECONDS` | Attente avant la 1re nouvelle tentative | `2` |
 | `LLM_BACKOFF_MAX_SECONDS` | Plafond de l'attente | `30` |
@@ -119,12 +119,31 @@ uv run python scripts/llm_poc.py 20 --provider ollama   # un fournisseur précis
 
 ## Résultats de mesure
 
-!!! note "À compléter"
-    Section à remplir après la mesure réelle (Groq, puis Ollama).
+Première mesure réelle le 10 octobre 2026, sur le poste de développement (Windows 11, 12 cœurs, 15 Go de RAM, sans GPU), avec les textes fictifs de `scripts/llm_poc.py`. Le processeur et la mémoire ont été relevés toutes les 2 secondes pendant la mesure.
 
-| Fournisseur / modèle | Appels | Latence moyenne (ms) | p95 (ms) | Erreurs 429 observées |
-|---|---|---|---|---|
-| Groq / `openai/gpt-oss-20b` | à mesurer | à mesurer | à mesurer | à mesurer |
-| Ollama / `qwen3:4b` (CPU) | à mesurer | à mesurer | à mesurer | sans objet |
+### Latence
 
-Limites du free tier observées : à compléter.
+| Fournisseur / modèle | Appels | Latence moyenne | p95 | Échecs | Tokens de sortie |
+|---|---|---|---|---|---|
+| Groq / `openai/gpt-oss-20b` | 6 | 739 ms | 1 522 ms (premier appel) | 0 | 160 à 500 |
+| Ollama / `qwen3:4b` (CPU) | 1 (contrôlé) | délai de 60 s dépassé | — | 1 sur 1 | — |
+| Ollama / `gemma3:4b` (CPU) | 2 | 28 s au premier appel (chargement du modèle compris), 13 s ensuite | — | 0 | 115 à 175 |
+
+Aucune erreur 429 n'a été observée : six appels restent très en dessous des quotas du free tier.
+
+### Charge sur le poste
+
+| Phase | CPU moyen | CPU max | RAM libre minimale |
+|---|---|---|---|
+| Repos (référence) | 5 % | 11 % | 3 768 Mo |
+| Appels Groq | 14 % | 41 % | 3 695 Mo |
+| Ollama `qwen3:4b` | 51 à 53 % | 98 % | 826 Mo |
+| Ollama `gemma3:4b` | 38 % | 61 % | 2 219 Mo |
+
+### Conclusions
+
+- **Groq convient comme fournisseur principal** : moins d'une seconde par réponse et une charge négligeable sur le poste, puisque le calcul est fait chez le fournisseur.
+- **`gpt-oss-20b` est un modèle à raisonnement** : il produit jusqu'à 500 tokens pour une réponse demandée en trois lignes. C'est sans conséquence sur la latence ici, mais cela consomme davantage le quota de tokens.
+- **`qwen3:4b` est écarté comme modèle de secours** : sa phase de raisonnement dépasse le délai de 60 s sur CPU. Cette mesure a révélé un défaut du client, qui réessayait le délai dépassé jusqu'à 6 fois et bloquait l'appel plus de 7 minutes. Le défaut est suivi dans l'Issue #19.
+- **`gemma3:4b` devient le modèle de secours par défaut** : 13 s par réponse une fois chargé, une charge acceptable, des réponses en français exploitables. La qualité est inférieure à celle de Groq (une réponse a proposé de vérifier « la pile de l'imprimante »), ce qui est acceptable pour un secours ponctuel.
+- **Le repli sur Ollama reste désactivé par défaut** (`LLM_FALLBACK_PROVIDER` vide) : il mobilise environ 3 Go de RAM et la moitié du processeur pendant l'appel.
