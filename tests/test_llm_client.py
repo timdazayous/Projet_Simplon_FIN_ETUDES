@@ -158,6 +158,30 @@ def test_connection_error_without_status_is_handled():
         client.complete("x")
 
 
+def timeout() -> openai.APITimeoutError:
+    request = httpx.Request("POST", "https://groq.example/v1/chat/completions")
+    return openai.APITimeoutError(request=request)
+
+
+def test_timeout_is_not_retried_and_does_not_back_off():
+    # Bug #19: a slow model stays slow, so a timeout must not be retried.
+    groq = FakeSDK([timeout()] * 3)  # max_retries=2 would allow 3 attempts
+    client, sleeps = make_client({"groq": groq})
+    with pytest.raises(LLMError):
+        client.complete("x")
+    assert groq.calls == 1
+    assert sleeps == []
+
+
+def test_timeout_goes_straight_to_fallback():
+    groq = FakeSDK([timeout()] * 3)
+    ollama = FakeSDK([reply("from ollama")])
+    client, sleeps = make_client({"groq": groq, "ollama": ollama}, fallback=True)
+    assert client.complete("x").provider == "ollama"
+    assert groq.calls == 1
+    assert sleeps == []
+
+
 def test_default_factory_builds_sdk_client_without_sdk_retries():
     sdk = LLMClient._default_factory(GROQ)
     assert sdk.max_retries == 0
