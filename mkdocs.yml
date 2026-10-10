@@ -26,6 +26,8 @@ nav:
       - Organisation: veille/index.md
       - Sources: veille/sources.md
       - Modèle de synthèse: veille/modele.md
+  - Service IA:
+      - Service LLM (Groq, Ollama): service-llm.md
   - Documentation: documentation.md
   - Intégration continue: ci.md
   - Décisions:
