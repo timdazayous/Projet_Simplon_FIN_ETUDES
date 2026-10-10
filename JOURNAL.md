@@ -41,3 +41,15 @@
 **Contexte** : dès la première séance, le volume d'articles remontés par FreshRSS dépasse ce qu'une heure permet de trier : les archives sont importées au premier abonnement, et certaines sources sont très prolifiques (CERT-FR couvre tous les logiciels ; le flux complet de Simon Willison publie environ 40 billets par semaine).
 **Choix / Cause** : réduire le volume avec les fonctions natives de FreshRSS (archives de plus de 7 jours marquées comme lues, filtre d'action sur CERT-FR limité aux composants du projet, flux « articles de fond » pour Simon Willison) ; annoter les articles pendant les séances (favori = pertinent). Ajout au backlog d'une aide au tri par classifieur (Issue #15), explicitement **optionnelle**.
 **Raison / Résolution** : les filtres natifs suffisent à rendre la veille tenable, donc C6 ne dépend pas du classifieur. L'aide au tri est retenue comme bonus parce qu'elle répond à un besoin réel, réutilise la démarche du projet (annotation humaine, classifieur, évaluation) et fournit un cas mesuré au benchmark (C7). Si le temps manque, elle est abandonnée sans impact sur le référentiel.
+
+## 2026-10-10 — Première mesure réelle du service LLM
+**Type** : décision
+**Contexte** : après la fusion du client LLM (#4, PR #18), mesure réelle de Groq et d'Ollama sur le poste de développement, avec relevé du processeur et de la mémoire toutes les 2 secondes.
+**Choix / Cause** : Groq (`openai/gpt-oss-20b`) confirmé comme fournisseur principal : 739 ms en moyenne sur 6 appels, aucun échec, charge négligeable sur le poste. Modèle de secours Ollama : `gemma3:4b` (13 s par réponse une fois chargé) à la place de `qwen3:4b`, qui dépasse le délai de 60 s sur CPU. Le repli reste désactivé par défaut.
+**Raison / Résolution** : `qwen3:4b` est un modèle à raisonnement, trop lent sur CPU, et sa charge a fait tomber la RAM libre à 826 Mo. `gemma3:4b`, sans raisonnement, répond dans le délai avec une charge acceptable. Détails dans `docs/service-llm.md`, section « Résultats de mesure ».
+
+## 2026-10-10 — Délai dépassé réessayé six fois avec Ollama
+**Type** : bug
+**Contexte** : pendant la mesure, `scripts/llm_poc.py 3 --provider ollama` avec `qwen3:4b` n'a pas terminé en plus de 10 minutes.
+**Choix / Cause** : symptôme reproduit avec un seul appel et sans nouvelle tentative : `error=APITimeoutError` au bout de 62 s. Le client classe le délai dépassé parmi les erreurs transitoires : il le réessaie jusqu'à 6 fois, avec backoff, soit environ 7 minutes de blocage par appel.
+**Raison / Résolution** : en cours, suivi dans l'Issue #19 (pistes : ne pas réessayer un délai dépassé comme une erreur 429, délai configurable par fournisseur, test dédié). Contournement immédiat : modèle de secours `gemma3:4b`. Candidat à l'incident documenté de l'épreuve E5.
