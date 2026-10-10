@@ -76,6 +76,33 @@ def test_invalid_values_are_rejected(extra):
         load_config({**GROQ_ENV, **OLLAMA_ENV, **extra})
 
 
+def test_timeout_defaults_differ_per_provider():
+    config = load_config({**GROQ_ENV, **OLLAMA_ENV, "LLM_FALLBACK_PROVIDER": "ollama"})
+    assert config.primary.timeout_seconds == 30.0
+    assert config.fallback is not None and config.fallback.timeout_seconds == 120.0
+
+
+def test_custom_timeouts_are_read():
+    env = {
+        **GROQ_ENV,
+        **OLLAMA_ENV,
+        "LLM_FALLBACK_PROVIDER": "ollama",
+        "GROQ_TIMEOUT_SECONDS": "10",
+        "OLLAMA_TIMEOUT_SECONDS": "300.5",
+    }
+    config = load_config(env)
+    assert config.primary.timeout_seconds == 10.0
+    assert config.fallback is not None and config.fallback.timeout_seconds == 300.5
+
+
+@pytest.mark.parametrize("value", ["0", "-5", "abc"])
+@pytest.mark.parametrize("var", ["GROQ_TIMEOUT_SECONDS", "OLLAMA_TIMEOUT_SECONDS"])
+def test_invalid_timeouts_are_rejected(var, value):
+    env = {**GROQ_ENV, **OLLAMA_ENV, "LLM_FALLBACK_PROVIDER": "ollama", var: value}
+    with pytest.raises(ConfigError, match=var):
+        load_config(env)
+
+
 def test_api_key_is_not_in_repr():
     assert "gsk_test_key" not in repr(load_config(GROQ_ENV))
 

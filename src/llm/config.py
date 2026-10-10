@@ -12,6 +12,8 @@ PROVIDERS = ("groq", "ollama")
 DEFAULT_MAX_RETRIES = 5
 DEFAULT_BACKOFF_BASE_SECONDS = 2.0
 DEFAULT_BACKOFF_MAX_SECONDS = 30.0
+# Request timeout per provider: Groq answers in about a second, a CPU-only local model is slow.
+DEFAULT_TIMEOUT_SECONDS = {"groq": 30.0, "ollama": 120.0}
 # Ollama ignores the API key but the OpenAI SDK requires a non-empty one.
 OLLAMA_DUMMY_KEY = "ollama"
 
@@ -28,6 +30,7 @@ class ProviderConfig:
     base_url: str
     model: str
     api_key: str = ""
+    timeout_seconds: float = 30.0
 
     def __repr__(self) -> str:  # never show the key
         return f"ProviderConfig(name={self.name!r}, model={self.model!r})"
@@ -59,11 +62,16 @@ def _provider(name: str, env: Mapping[str, str]) -> ProviderConfig:
         base_url=env[f"{prefix}_BASE_URL"].strip(),
         model=env[f"{prefix}_MODEL"].strip(),
         api_key=api_key,
+        timeout_seconds=_number(
+            env, f"{prefix}_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS[name], float, positive=True
+        ),
     )
 
 
-def _number(env: Mapping[str, str], var: str, default: float, cast: type) -> float:
-    """Read a non-negative number from the environment, or return the default."""
+def _number(
+    env: Mapping[str, str], var: str, default: float, cast: type, *, positive: bool = False
+) -> float:
+    """Read a non-negative (or strictly positive) number from the environment, or the default."""
     raw = (env.get(var) or "").strip()
     if not raw:
         return default
@@ -71,8 +79,9 @@ def _number(env: Mapping[str, str], var: str, default: float, cast: type) -> flo
         value = cast(raw)
     except ValueError:
         raise ConfigError(f"{var} must be a number, got {raw!r}") from None
-    if value < 0:
-        raise ConfigError(f"{var} must be >= 0, got {raw!r}")
+    if value < 0 or (positive and value == 0):
+        bound = "> 0" if positive else ">= 0"
+        raise ConfigError(f"{var} must be {bound}, got {raw!r}")
     return value
 
 

@@ -182,10 +182,32 @@ def test_timeout_goes_straight_to_fallback():
     assert sleeps == []
 
 
+def test_connection_error_that_is_not_a_timeout_is_still_retried():
+    request = httpx.Request("POST", "https://groq.example/v1/chat/completions")
+    groq = FakeSDK([openai.APIConnectionError(request=request), reply()])
+    client, sleeps = make_client({"groq": groq})
+    assert client.complete("x").text == SECRET_ANSWER
+    assert groq.calls == 2 and sleeps == [1.0]
+
+
+def test_timeout_log_contains_metadata_only(caplog):
+    client, _ = make_client({"groq": FakeSDK([timeout()])})
+    with caplog.at_level(logging.DEBUG), pytest.raises(LLMError):
+        client.complete(SECRET_PROMPT)
+    assert "provider=groq" in caplog.text and "error=APITimeoutError" in caplog.text
+    assert "hunter2" not in caplog.text
+
+
 def test_default_factory_builds_sdk_client_without_sdk_retries():
     sdk = LLMClient._default_factory(GROQ)
     assert sdk.max_retries == 0
     assert str(sdk.base_url).startswith("https://groq.example/v1")
+
+
+def test_default_factory_uses_the_timeout_of_each_provider():
+    slow = ProviderConfig("ollama", "http://localhost:11434/v1", "model-o", "ollama", 120.0)
+    assert LLMClient._default_factory(GROQ).timeout == GROQ.timeout_seconds
+    assert LLMClient._default_factory(slow).timeout == 120.0
 
 
 def test_logs_contain_metadata_but_never_prompt_or_answer(caplog):
