@@ -51,6 +51,17 @@ Choix de configuration :
 - **Rafraîchissement automatique** aux minutes 1 et 31 de chaque heure (variable `CRON_MIN`).
 - **Volumes Docker nommés** : la configuration, le compte et les articles lus sont conservés entre deux week-ends.
 - **Taille des journaux limitée** à 10 Mo.
+- **Authentification par formulaire** (identifiant et mot de passe, stocké haché par FreshRSS). L'authentification HTTP déléguée à un serveur frontal est écartée car aucun serveur de ce type n'est en place, et l'absence d'authentification est écartée par principe, même pour un outil uniquement local.
+
+#### Réduire le volume
+
+- **Au premier import**, les flux livrent leurs archives. Tout ce qui a plus de 7 jours est marqué comme lu (recherche `!date:P7D`, puis « Marquer comme lu »).
+- **Filtre d'action sur CERT-FR** : ce flux couvre tous les logiciels. La ligne `!python !postgresql !mariadb !glpi !docker !php`, placée dans « Marquer comme lu » des filtres du flux, écarte automatiquement les avis qui ne concernent aucun composant du projet. Dans la recherche FreshRSS, l'espace signifie « et » et `!` signifie « ne contient pas ».
+- **Flux allégés** : pour les auteurs très prolifiques, on suit leur flux d'articles de fond plutôt que leur flux complet.
+
+#### Annotation des articles
+
+Les articles retenus pour la veille sont mis en **favori**. Les articles lus mais non mis en favori sont considérés comme hors sujet. Cette convention ne coûte rien pendant la séance et constitue un jeu de données annoté, réutilisable pour une éventuelle aide au tri automatique (voir l'Issue dédiée, optionnelle).
 
 Les sources sans flux RSS (pages de changelog, actualités sans flux) sont consultées directement pendant la séance. La liste figure dans les [sources](sources.md).
 

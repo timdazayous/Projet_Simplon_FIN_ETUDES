@@ -10,7 +10,7 @@
       <outline type="rss" text="Ollama — blog" xmlUrl="https://ollama.com/blog/rss.xml" htmlUrl="https://ollama.com/blog"/>
       <outline type="rss" text="Ollama — versions" xmlUrl="https://github.com/ollama/ollama/releases.atom" htmlUrl="https://github.com/ollama/ollama/releases"/>
       <outline type="rss" text="Hugging Face — blog" xmlUrl="https://huggingface.co/blog/feed.xml" htmlUrl="https://huggingface.co/blog"/>
-      <outline type="rss" text="Simon Willison" xmlUrl="https://simonwillison.net/atom/everything/" htmlUrl="https://simonwillison.net/"/>
+      <outline type="rss" text="Simon Willison (articles de fond)" xmlUrl="https://simonwillison.net/atom/entries/" htmlUrl="https://simonwillison.net/"/>
     </outline>
     <outline text="Outils, sécurité et accessibilité">
       <outline type="rss" text="CERT-FR" xmlUrl="https://www.cert.ssi.gouv.fr/feed/" htmlUrl="https://www.cert.ssi.gouv.fr/"/>
