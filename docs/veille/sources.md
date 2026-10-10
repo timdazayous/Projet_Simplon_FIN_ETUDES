@@ -33,7 +33,7 @@ Une source dont l'indépendance est limitée (éditeur d'un outil, association e
 | [Ollama — versions](https://github.com/ollama/ollama/releases) | Éditeur d'Ollama | `https://github.com/ollama/ollama/releases.atom` | Notes de version officielles : changements exacts et datés. **Fiabilité élevée.** |
 | [Groq — journal des modifications](https://console.groq.com/docs/changelog) et [dépréciations](https://console.groq.com/docs/deprecations) | Groq | Pas de flux : consultation directe en séance | Source primaire sur les modèles disponibles et les retraits annoncés, qui peuvent casser l'intégration du projet. **Fiabilité élevée sur ces faits.** |
 | [Hugging Face — blog](https://huggingface.co/blog) | Hugging Face, entreprise | `https://huggingface.co/blog/feed.xml` | Articles techniques signés, souvent avec code et références ; intérêt commercial pour sa plateforme. **Fiabilité bonne, à recouper.** |
-| [Simon Willison — blog](https://simonwillison.net/) | Simon Willison, développeur indépendant (co-créateur du framework Django) | `https://simonwillison.net/atom/everything/` | Auteur identifié et reconnu, sans produit à vendre sur les sujets traités ; tests concrets et sources systématiquement liées. **Fiabilité élevée.** |
+| [Simon Willison — blog](https://simonwillison.net/) | Simon Willison, développeur indépendant (co-créateur du framework Django) | `https://simonwillison.net/atom/entries/` (articles de fond) | Auteur identifié et reconnu, sans produit à vendre sur les sujets traités ; tests concrets et sources systématiquement liées. Le flux des articles de fond remplace le flux complet, qui publie environ 40 billets par semaine, trop pour une séance d'une heure. **Fiabilité élevée.** |
 
 ### Outils du projet, sécurité et accessibilité
 

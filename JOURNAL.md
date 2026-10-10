@@ -35,3 +35,9 @@
 **Contexte** : C6 exige une veille d'au moins 1 h par semaine, tracée, avec un outil d'agrégation cohérent avec les sources et le budget.
 **Choix / Cause** : trois thématiques liées au projet (services LLM et modèles légers, réglementation IA et données, outils/sécurité/accessibilité) ; 14 sources évaluées selon une grille de fiabilité ; agrégateur FreshRSS auto-hébergé en Docker (`tools/freshrss/`) ; séance d'1 h le week-end ; synthèses publiées sur le site de documentation.
 **Raison / Résolution** : FreshRSS est libre, gratuit, rafraîchit les flux automatiquement et s'intègre à la stack Docker. Alternatives écartées : Inoreader (offre gratuite avec publicité, flux à rafraîchir manuellement d'après l'expérience du développeur), Feedly (tri limité en gratuit).
+
+## 2026-10-10 — Volume de la veille et aide au tri optionnelle
+**Type** : décision
+**Contexte** : dès la première séance, le volume d'articles remontés par FreshRSS dépasse ce qu'une heure permet de trier : les archives sont importées au premier abonnement, et certaines sources sont très prolifiques (CERT-FR couvre tous les logiciels ; le flux complet de Simon Willison publie environ 40 billets par semaine).
+**Choix / Cause** : réduire le volume avec les fonctions natives de FreshRSS (archives de plus de 7 jours marquées comme lues, filtre d'action sur CERT-FR limité aux composants du projet, flux « articles de fond » pour Simon Willison) ; annoter les articles pendant les séances (favori = pertinent). Ajout au backlog d'une aide au tri par classifieur (Issue #15), explicitement **optionnelle**.
+**Raison / Résolution** : les filtres natifs suffisent à rendre la veille tenable, donc C6 ne dépend pas du classifieur. L'aide au tri est retenue comme bonus parce qu'elle répond à un besoin réel, réutilise la démarche du projet (annotation humaine, classifieur, évaluation) et fournit un cas mesuré au benchmark (C7). Si le temps manque, elle est abandonnée sans impact sur le référentiel.
