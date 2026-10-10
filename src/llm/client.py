@@ -18,11 +18,11 @@ from src.llm.config import LLMConfig, ProviderConfig, load_config
 
 logger = logging.getLogger(__name__)
 
-REQUEST_TIMEOUT_SECONDS = 60.0
 # Errors worth retrying: rate limit (429), network problems, server errors (5xx).
+# A timeout is NOT retried (see _complete_with): a model too slow stays too slow.
 RETRYABLE_ERRORS = (
     openai.RateLimitError,
-    openai.APIConnectionError,  # includes APITimeoutError
+    openai.APIConnectionError,  # also the parent of APITimeoutError, caught before
     openai.InternalServerError,
 )
 
@@ -80,7 +80,7 @@ class LLMClient:
             base_url=provider.base_url,
             api_key=provider.api_key,
             max_retries=0,
-            timeout=REQUEST_TIMEOUT_SECONDS,
+            timeout=provider.timeout_seconds,
         )
 
     def _client(self, provider: ProviderConfig) -> OpenAI:
@@ -121,6 +121,17 @@ class LLMClient:
                     model=provider.model,
                     messages=[{"role": "user", "content": prompt}],
                 )
+            except openai.APITimeoutError as exc:
+                # Must come before RETRYABLE_ERRORS: APITimeoutError is an APIConnectionError.
+                logger.info(
+                    "provider=%s model=%s attempt=%d/%d error=%s",
+                    provider.name,
+                    provider.model,
+                    attempt,
+                    attempts,
+                    _error_code(exc),
+                )
+                raise
             except RETRYABLE_ERRORS as exc:
                 logger.info(
                     "provider=%s model=%s attempt=%d/%d error=%s",
