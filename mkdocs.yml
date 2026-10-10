@@ -26,6 +26,7 @@ nav:
       - Organisation: veille/index.md
       - Sources: veille/sources.md
       - Modèle de synthèse: veille/modele.md
+  - Taxonomie des tickets: taxonomie.md
   - Documentation: documentation.md
   - Intégration continue: ci.md
   - Décisions:
