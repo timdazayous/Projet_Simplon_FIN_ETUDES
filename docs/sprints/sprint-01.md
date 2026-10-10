@@ -21,8 +21,9 @@ Jalon : Phase 1 — Cadrage et fondations.
 | Date | Changement | Raison |
 |---|---|---|
 | 7 octobre 2026 | #3 « Socle MkDocs publié sur GitHub Pages » (2 points) avancée du sprint 2 au sprint 1 | #1 et #2 ont été terminées plus tôt que prévu. #3 ne demande pas de temps au développeur, et la documentation pourra publier la veille et le pilotage dès leur rédaction. |
+| 10 octobre 2026 | #4 « POC Groq : latence, quotas, bascule Ollama » (5 points) avancée du sprint 2 au sprint 1 | La clé Groq est prête et les modèles Ollama déjà installés : le développement peut être confié à un agent sans attendre. Le repli sur Ollama est rendu désactivable pour ménager les ressources du poste. |
 
-**Périmètre après changement** : 11 points.
+**Périmètre après changements** : 16 points.
 
 ## Revue (à compléter le 19 octobre 2026)
 
