@@ -21,7 +21,7 @@
 
 ## Étapes
 
-Le workflow `ci.yml` exécute un seul job sur une machine Ubuntu :
+Le workflow `ci.yml` exécute deux jobs indépendants sur une machine Ubuntu. Le job `lint-and-test` enchaîne :
 
 1. **Checkout** : récupération du code.
 2. **Installation de uv** : gestionnaire de dépendances Python du projet (action `astral-sh/setup-uv`, avec cache).
@@ -31,6 +31,8 @@ Le workflow `ci.yml` exécute un seul job sur une machine Ubuntu :
 6. **`uv run pytest`** : exécute tous les tests et mesure la couverture.
 
 Si une étape échoue, les suivantes ne sont pas exécutées et la CI est rouge.
+
+Le job `valider-compose-glpi` exécute `docker compose -f infra/glpi/docker-compose.yml config -q` avec des mots de passe factices passés par variables d'environnement. Il vérifie la syntaxe et l'interpolation du fichier sans démarrer de conteneur ni télécharger d'image : il dure quelques secondes (compétence C15, configuration d'environnement versionnée et validée).
 
 ## Sécurité de la chaîne
 
