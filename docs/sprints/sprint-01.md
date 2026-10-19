@@ -26,14 +26,38 @@ Jalon : Phase 1 — Cadrage et fondations.
 
 **Périmètre après changements** : 18 points.
 
-## Revue (à compléter le 19 octobre 2026)
+## Revue (19 octobre 2026)
 
-- Livré :
-- Non terminé, et pourquoi :
-- Points terminés / points planifiés :
+**Points terminés / points planifiés** : 15 sur 18 (83 %).
 
-## Rétrospective (à compléter le 19 octobre 2026)
+**Livré** :
 
-- Ce qui a bien marché :
-- Ce qui a freiné :
-- Actions pour le sprint 2 :
+| Issue | Résultat |
+|---|---|
+| #1 | Chaîne d'intégration continue (ruff, pytest, couverture) sur chaque push et chaque Pull Request |
+| #2 | Outil de ticketing choisi : GLPI, après comparaison argumentée avec Zammad |
+| #3 | Site de documentation MkDocs publié automatiquement sur GitHub Pages |
+| #4 | Client LLM (Groq, repli Ollama désactivable), mesure réelle de latence et de charge du poste |
+| #7 | Méthode agile, rituels et outils documentés |
+| #19 | Bug découvert pendant la mesure (délai dépassé réessayé six fois), reproduit par un test, corrigé et documenté comme incident |
+
+**Non terminé** : #8 « Mettre en place la veille hebdomadaire » (3 points). L'outillage est en place (FreshRSS en Docker, 14 sources qualifiées, filtres, modèle de synthèse), mais la première synthèse n'est pas encore rédigée. L'Issue est reportée au sprint 2.
+
+**Faits marquants** : trois Issues ajoutées en cours de sprint (#3, #4, #19), chacune tracée avec sa raison ; un premier incident réel, documenté de bout en bout.
+
+## Rétrospective (19 octobre 2026)
+
+**Ce qui a bien marché** (développeur) : la planification du projet avec les agents IA, la manière d'aborder le développement, et la mise en place de la gestion agile avec GitHub.
+
+**Ce qui a freiné** (développeur) :
+
+- De gros projets à mener en entreprise ont réduit le temps disponible pour le projet.
+- Le cadrage de la veille dans FreshRSS a pris du temps : le volume d'articles remontés est très élevé, et la mise en place des filtres et critères de tri est longue. Cet investissement devrait être rentabilisé par la suite.
+
+**Constat de l'assistant** : la vélocité du sprint vient surtout du travail délégué aux agents (#3, #4, #19). Les tâches qui demandent du temps au développeur (#8) sont celles qui glissent.
+
+**Actions pour le sprint 2** :
+
+1. Reporter #8 et la limiter à son objectif minimal : une première synthèse rédigée, sans chercher à perfectionner le tri au préalable.
+2. Garder un sprint léger en temps développeur : chaque tâche du développeur est découpée pour tenir en une séance (taxonomie : 5 questions traitées une par une ; note de cadrage : rédigée par l'assistant, relue par le développeur).
+3. Continuer à confier aux agents tout ce qui ne demande pas l'expertise du développeur.
