@@ -65,7 +65,7 @@ Plus : clés dans `.env` uniquement, rôles PostgreSQL séparés (application / 
 
 **Documentation** : OpenAPI généré par FastAPI pour les API ; **MkDocs + Material** pour la doc projet, publiée sur GitHub Pages par la CI (https://timdazayous.github.io/Projet_Simplon_FIN_ETUDES/). Toute nouvelle page de `docs/` doit être ajoutée à la `nav` de `mkdocs.yml`. Material est en maintenance jusqu'à ~novembre 2026 : suivi dans #13. Sphinx écarté (plus lourd).
 
-**Outil de ticketing** : **GLPI 11** en Docker (images officielles `glpi/glpi`, base MariaDB). Il fournit les sources API REST (API v2, OAuth2) et SQL direct. Zammad écarté (Elasticsearch, 4 Go de RAM minimum, orientation support client). Voir `docs/decisions/outil-ticketing.md`.
+**Outil de ticketing** : **GLPI 11.0.11** en Docker (`infra/glpi/`, tags épinglés `glpi/glpi:11.0.11` et `mariadb:10.11.19`, ports locaux 8082 et 3307, procédure dans `docs/glpi.md`). GLPI 12 sorti le 2026-10-18 : réévaluation suivie dans #24. Il fournit les sources API REST (API v2, OAuth2) et SQL direct. Zammad écarté (Elasticsearch, 4 Go de RAM minimum, orientation support client). Voir `docs/decisions/outil-ticketing.md`.
 
 **Stack** : Python 3.12 (uv), FastAPI, PostgreSQL + pgvector, PySpark / Spark SQL sur Parquet (dans Docker), DVC, MLflow, Evidently, pytest, GitHub Actions, Prometheus + Grafana, Loki, **React** pour le front.
 
@@ -132,7 +132,7 @@ Autres skills (RGPD, front accessible, MLOps…), plugins et serveurs MCP : **à
 Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https://github.com/users/timdazayous/projects/2), sprints de 2 semaines à partir du 2026-10-06, jalon « Phase 1 — Cadrage et fondations » (échéance 2026-11-02). Consulter les Issues avec `gh issue list` plutôt que de recopier leur contenu ici.
 
 - **Sprint 1** (6 → 19 octobre, terminé) : 15 points sur 18 ; #8 reportée. Revue et rétrospective dans `docs/sprints/sprint-01.md`.
-- **Sprint 2** (20 octobre → 2 novembre) : #8 première synthèse de veille, #6 taxonomie (PR brouillon #17), #5 note de cadrage, #22 GLPI en Docker (Sonnet). Backlog : #13, #15 (optionnelle). Temps développeur réduit : tâches découpées en séances courtes.
+- **Sprint 2** (20 octobre → 2 novembre) : #8 première synthèse de veille, #6 taxonomie (PR brouillon #17), #5 note de cadrage, ~~#22 GLPI en Docker~~ (premier démarrage à faire avec le développeur). Backlog : #13, #15 (optionnelle), #24 (GLPI 12). Temps développeur réduit : tâches découpées en séances courtes.
 - **Ensuite** : générateur de tickets synthétiques (après la taxonomie), extraction depuis GLPI (API et SQL)
 
 Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`.

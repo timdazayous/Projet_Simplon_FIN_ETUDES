@@ -59,3 +59,9 @@
 **Contexte** : suite de l'entrée du 2026-10-10. Le client LLM réessayait un délai dépassé jusqu'à 6 fois, ce qui bloquait un appel à Ollama environ 7 minutes.
 **Choix / Cause** : bug reproduit par un test (commit `3922c61` : 2 tests en échec sur le code d'origine, vérifiés en relecture), puis corrigé : `APITimeoutError` est intercepté avant les erreurs réessayées et passe directement au repli ; délai configurable par fournisseur (`GROQ_TIMEOUT_SECONDS=30`, `OLLAMA_TIMEOUT_SECONDS=120`). Les erreurs 429, 5xx et de connexion gardent le retry avec backoff.
 **Raison / Résolution** : un modèle trop lent restera trop lent, donc réessayer ne fait que multiplier l'attente. Un délai par fournisseur reflète des temps de réponse très différents (moins d'une seconde pour Groq, plus de 10 s pour un modèle local sur CPU). Validation : 40 tests verts, couverture de `src/llm` à 100 %, CI verte. Correction livrée par la PR #21, incident documenté dans `docs/incidents/2026-10-10-delai-depasse-ollama.md`.
+
+## 2026-10-19 — GLPI 11.0.11 plutôt que GLPI 12
+**Type** : décision
+**Contexte** : pendant le développement du déploiement Docker de GLPI (#22, PR #23), l'agent a constaté que l'image `glpi/glpi:latest` pointait déjà sur GLPI 12.0.0, publié le 2026-10-18. Vérifié en relecture sur Docker Hub : la version 11.0.11 a été publiée le même jour, la branche 11 reste donc maintenue.
+**Choix / Cause** : rester sur **GLPI 11.0.11**, avec un tag d'image épinglé (`glpi/glpi:11.0.11`, `mariadb:10.11.19`) plutôt que `latest`. Réévaluation de la 12 suivie dans l'Issue #24.
+**Raison / Résolution** : une version x.0.0 publiée la veille présente le plus de risques de régression ; la documentation de l'API v2 et les retours de la communauté portent sur la 11 ; épingler les tags garantit que l'installation reste reproductible (C4) même quand `latest` change. Alternative écartée : GLPI 12.0.0, à réévaluer après une ou deux versions correctives grâce à la veille.
