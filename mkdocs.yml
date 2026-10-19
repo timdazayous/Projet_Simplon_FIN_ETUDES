@@ -28,6 +28,8 @@ nav:
       - Modèle de synthèse: veille/modele.md
   - Service IA:
       - Service LLM (Groq, Ollama): service-llm.md
+  - Incidents:
+      - Délai dépassé sur Ollama: incidents/2026-10-10-delai-depasse-ollama.md
   - Documentation: documentation.md
   - Intégration continue: ci.md
   - Décisions:

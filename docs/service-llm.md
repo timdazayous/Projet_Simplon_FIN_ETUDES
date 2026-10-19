@@ -55,6 +55,8 @@ Le fichier `.env` est ignoré par Git : la clé ne doit **jamais** être écrite
 | `GROQ_MODEL` | Modèle Groq | `openai/gpt-oss-20b` |
 | `OLLAMA_BASE_URL` | Adresse d'Ollama | `http://localhost:11434/v1` |
 | `OLLAMA_MODEL` | Modèle Ollama | `gemma3:4b` |
+| `GROQ_TIMEOUT_SECONDS` | Délai maximal d'une requête Groq (strictement positif) | `30` |
+| `OLLAMA_TIMEOUT_SECONDS` | Délai maximal d'une requête Ollama (strictement positif) | `120` |
 | `LLM_MAX_RETRIES` | Nouvelles tentatives après le premier essai | `5` |
 | `LLM_BACKOFF_BASE_SECONDS` | Attente avant la 1re nouvelle tentative | `2` |
 | `LLM_BACKOFF_MAX_SECONDS` | Plafond de l'attente | `30` |
@@ -70,13 +72,16 @@ La configuration est validée au démarrage : une variable obligatoire manquante
 ```text
 appel au principal
   ├─ succès → résultat
+  ├─ délai dépassé → aucune nouvelle tentative, passage direct à la suite ci-dessous
   └─ erreur 429, réseau ou 5xx → attente (backoff) → nouvelle tentative
-        └─ tentatives épuisées (ou erreur non transitoire, ex. clé invalide)
+        └─ tentatives épuisées (ou délai dépassé, ou erreur non transitoire, ex. clé invalide)
               ├─ repli configuré → même logique avec Ollama
               └─ pas de repli → exception LLMError
 ```
 
-- **Erreurs transitoires** (429, coupure réseau, délai dépassé, erreur serveur 5xx) : nouvelle tentative.
+- **Erreurs transitoires** (429, coupure réseau qui n'est pas un délai dépassé, erreur serveur 5xx) : nouvelle tentative.
+- **Délai dépassé** : **jamais réessayé** sur le même fournisseur. Un modèle trop lent pour répondre dans le délai le sera encore à l'essai suivant (cas réel du modèle `qwen3:4b` sur CPU, Issue #19) : réessayer ne ferait que multiplier l'attente et la charge sur le poste. Le client passe directement au repli s'il existe, sinon il lève `LLMError`. Dans le code, l'exception `APITimeoutError` hérite de `APIConnectionError` : elle est donc interceptée **avant** les erreurs transitoires.
+- **Délai par fournisseur** : `GROQ_TIMEOUT_SECONDS` (30 s par défaut) et `OLLAMA_TIMEOUT_SECONDS` (120 s par défaut). Groq répond en moins de 2 s ; un modèle local sur CPU a besoin de plus de temps. Ces délais sont transmis au SDK à la création du client.
 - **Attente** : `base × 2^(n-1)` secondes (2, 4, 8, 16, 30…), plafonnée par `LLM_BACKOFF_MAX_SECONDS`. Si la réponse contient l'en-tête `retry-after`, l'attente est au moins égale à cette valeur (toujours plafonnée).
 - **Erreurs non transitoires** (clé invalide, requête refusée) : pas de nouvelle tentative, passage direct au repli, car réessayer ne changerait rien.
 - Les nouvelles tentatives automatiques du SDK `openai` sont désactivées (`max_retries=0`) pour que tout passe par notre logique, journalisée et bornée.
@@ -106,7 +111,7 @@ Les tests n'effectuent **aucun appel réseau** : le SDK est remplacé par un fau
 uv run pytest tests/test_llm_config.py tests/test_llm_client.py
 ```
 
-Ils couvrent la configuration, le succès simple, la nouvelle tentative sur 429, l'en-tête `retry-after`, l'épuisement puis la bascule, le repli désactivé, et l'absence de contenu du prompt dans les journaux.
+Ils couvrent la configuration (dont les délais par fournisseur), le succès simple, la nouvelle tentative sur 429, l'en-tête `retry-after`, l'épuisement puis la bascule, le repli désactivé, l'absence de nouvelle tentative sur délai dépassé et l'absence de contenu du prompt dans les journaux.
 
 ## Mesurer la latence
 
@@ -144,6 +149,6 @@ Aucune erreur 429 n'a été observée : six appels restent très en dessous des 
 
 - **Groq convient comme fournisseur principal** : moins d'une seconde par réponse et une charge négligeable sur le poste, puisque le calcul est fait chez le fournisseur.
 - **`gpt-oss-20b` est un modèle à raisonnement** : il produit jusqu'à 500 tokens pour une réponse demandée en trois lignes. C'est sans conséquence sur la latence ici, mais cela consomme davantage le quota de tokens.
-- **`qwen3:4b` est écarté comme modèle de secours** : sa phase de raisonnement dépasse le délai de 60 s sur CPU. Cette mesure a révélé un défaut du client, qui réessayait le délai dépassé jusqu'à 6 fois et bloquait l'appel plus de 7 minutes. Le défaut est suivi dans l'Issue #19.
+- **`qwen3:4b` est écarté comme modèle de secours** : sa phase de raisonnement dépasse le délai de 60 s sur CPU. Cette mesure a révélé un défaut du client, qui réessayait le délai dépassé jusqu'à 6 fois et bloquait l'appel plus de 7 minutes. Le défaut est corrigé (Issue #19) : voir [l'incident](incidents/2026-10-10-delai-depasse-ollama.md).
 - **`gemma3:4b` devient le modèle de secours par défaut** : 13 s par réponse une fois chargé, une charge acceptable, des réponses en français exploitables. La qualité est inférieure à celle de Groq (une réponse a proposé de vérifier « la pile de l'imprimante »), ce qui est acceptable pour un secours ponctuel.
 - **Le repli sur Ollama reste désactivé par défaut** (`LLM_FALLBACK_PROVIDER` vide) : il mobilise environ 3 Go de RAM et la moitié du processeur pendant l'appel.
