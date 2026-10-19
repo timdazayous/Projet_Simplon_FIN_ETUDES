@@ -53,3 +53,9 @@
 **Contexte** : pendant la mesure, `scripts/llm_poc.py 3 --provider ollama` avec `qwen3:4b` n'a pas terminé en plus de 10 minutes.
 **Choix / Cause** : symptôme reproduit avec un seul appel et sans nouvelle tentative : `error=APITimeoutError` au bout de 62 s. Le client classe le délai dépassé parmi les erreurs transitoires : il le réessaie jusqu'à 6 fois, avec backoff, soit environ 7 minutes de blocage par appel.
 **Raison / Résolution** : en cours, suivi dans l'Issue #19 (pistes : ne pas réessayer un délai dépassé comme une erreur 429, délai configurable par fournisseur, test dédié). Contournement immédiat : modèle de secours `gemma3:4b`. Candidat à l'incident documenté de l'épreuve E5.
+
+## 2026-10-19 — Résolution du bug #19 (délai dépassé)
+**Type** : bug
+**Contexte** : suite de l'entrée du 2026-10-10. Le client LLM réessayait un délai dépassé jusqu'à 6 fois, ce qui bloquait un appel à Ollama environ 7 minutes.
+**Choix / Cause** : bug reproduit par un test (commit `3922c61` : 2 tests en échec sur le code d'origine, vérifiés en relecture), puis corrigé : `APITimeoutError` est intercepté avant les erreurs réessayées et passe directement au repli ; délai configurable par fournisseur (`GROQ_TIMEOUT_SECONDS=30`, `OLLAMA_TIMEOUT_SECONDS=120`). Les erreurs 429, 5xx et de connexion gardent le retry avec backoff.
+**Raison / Résolution** : un modèle trop lent restera trop lent, donc réessayer ne fait que multiplier l'attente. Un délai par fournisseur reflète des temps de réponse très différents (moins d'une seconde pour Groq, plus de 10 s pour un modèle local sur CPU). Validation : 40 tests verts, couverture de `src/llm` à 100 %, CI verte. Correction livrée par la PR #21, incident documenté dans `docs/incidents/2026-10-10-delai-depasse-ollama.md`.
