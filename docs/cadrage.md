@@ -23,7 +23,7 @@ Ces chiffres sont des **hypothèses de travail**, utilisées pour dimensionner l
 | Alertes de supervision | 150 à 300 par jour | serveurs, réseau, sauvegardes, sécurité |
 | **Total à trier** | **250 à 450 éléments par jour** | une file unique, triée à la main |
 
-Ces ordres de grandeur ont été validés par le développeur au regard de son expérience terrain en MSP (environ 500 alertes de supervision par jour dans la structure qu'il connaît). Le volume d'alertes dépend surtout du nombre d'équipements supervisés et du réglage des seuils, davantage que du nombre de clients : il sera affiné avec le générateur de données synthétiques.
+Ces ordres de grandeur ont été validés par le développeur au regard de son expérience terrain en MSP (environ 500 alertes de supervision par jour dans la structure qu'il connaît). Le volume d'alertes ne se déduit pas du nombre de clients : tous ne sont pas supervisés, et le nombre d'équipements supervisés varie fortement d'un client à l'autre. Il dépend surtout du parc supervisé et du réglage des seuils, et sera affiné avec le générateur de données synthétiques.
 
 ### Le problème
 
