@@ -86,7 +86,7 @@ L'équipe n'est pas prédite par le modèle : elle est **déduite par des règle
 | 1 | Catégorie `security` | `security` |
 | 2 | Catégorie `procurement` | `procurement` |
 | 3 | Catégorie `admin_billing` | `account_management` |
-| 4 | Priorité `P1` et type `incident` | `systems_network` |
+| 4 | Priorité `P1` et type `incident` | `systems_network` (y compris pour la messagerie : un incident critique est confié au niveau le plus expérimenté, quel que soit le sujet) |
 | 5 | Type `information` | `service_desk` |
 | 6 | Catégorie `messaging` | `cloud_collab` |
 | 7 | Catégorie `network`, `infrastructure` ou `backup` | `systems_network` |

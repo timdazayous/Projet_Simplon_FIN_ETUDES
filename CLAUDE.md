@@ -74,8 +74,8 @@ Plus : clés dans `.env` uniquement, rôles PostgreSQL séparés (application / 
 ## Décisions encore ouvertes
 
 Ne pas trancher sans en discuter avec le développeur :
-- Seuil de confiance de l'automatisation (à fixer après l'évaluation du modèle) ; règle de routage n°4 (P1 → systèmes et réseau) à confirmer ; niveaux de gravité Meraki à compléter
-- Répartition du corpus : généré / traduit / écrit à la main
+- Seuil de confiance de l'automatisation (à fixer après l'évaluation du modèle) ; niveaux de gravité Meraki à compléter
+- Répartition du corpus : généré / public traduit / écrit à la main (proposition : entraînement surtout généré, test public traduit + 50 à 100 tickets écrits par le développeur)
 - Volume cible de l'historique Parquet
 - Hébergeur de pré-production
 - Ergonomie et design du front (à débattre ensemble, le développeur débute en React)
