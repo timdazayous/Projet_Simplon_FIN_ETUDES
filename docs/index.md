@@ -26,6 +26,7 @@ L'outil aide le technicien à décider, il n'agit jamais seul.
 
 ## Dans cette documentation
 
+- [Note de cadrage](cadrage.md) : commanditaire, objectifs, périmètre, contraintes, budget et feuille de route.
 - [Pilotage](pilotage.md) : méthode agile, rituels et comptes rendus de sprint.
 - [Veille](veille/index.md) : veille technique et réglementaire, sources et synthèses hebdomadaires.
 - [Documentation](documentation.md) : comment ce site est construit et publié.

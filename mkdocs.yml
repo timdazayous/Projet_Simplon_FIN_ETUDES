@@ -19,6 +19,7 @@ plugins:
 
 nav:
   - Accueil: index.md
+  - Note de cadrage: cadrage.md
   - Pilotage:
       - Méthode agile: pilotage.md
       - Sprint 1: sprints/sprint-01.md
