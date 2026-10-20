@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "Triage IA des tickets et alertes d'un MSP : classification, suggestion de résolution et apprentissage des corrections"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "openai>=3.28.0",
+    "python-dotenv>=1.2.4",
+]
 
 [dependency-groups]
 dev = [

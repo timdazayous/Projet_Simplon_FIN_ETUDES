@@ -30,3 +30,16 @@ jobs:
 
       - name: Tests (pytest + couverture)
         run: uv run pytest
+
+  valider-compose-glpi:
+    # Valide la syntaxe du compose de GLPI sans démarrer de conteneur ni télécharger d'image.
+    runs-on: ubuntu-latest
+    env:
+      # Valeurs factices : seule la structure du fichier est vérifiée
+      GLPI_DB_PASSWORD: factice-ci
+      GLPI_DB_ROOT_PASSWORD: factice-ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Valider infra/glpi/docker-compose.yml
+        run: docker compose -f infra/glpi/docker-compose.yml config -q

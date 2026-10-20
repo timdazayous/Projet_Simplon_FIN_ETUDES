@@ -1,0 +1,68 @@
+# GLPI 11 (outil de ticketing qui simule le SI du MSP) + MariaDB.
+# Les secrets viennent du .env du projet, jamais de ce fichier. Depuis la racine du dépôt :
+#   docker compose --env-file .env -f infra/glpi/docker-compose.yml up -d
+# Interface : http://127.0.0.1:8082 (port réglable par GLPI_HTTP_PORT)
+# Procédure complète : docs/glpi.md
+
+name: triage-glpi
+
+services:
+  db:
+    # Tag précis (pas « latest ») pour la reproductibilité. GLPI 11 exige MariaDB >= 10.6 ;
+    # 10.11 est une version à support long terme.
+    image: mariadb:10.11.19
+    container_name: glpi-db
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Paris
+      MARIADB_ROOT_PASSWORD: ${GLPI_DB_ROOT_PASSWORD:?GLPI_DB_ROOT_PASSWORD manquant dans .env}
+      MARIADB_DATABASE: ${GLPI_DB_NAME:-glpi}
+      MARIADB_USER: ${GLPI_DB_USER:-glpi}
+      MARIADB_PASSWORD: ${GLPI_DB_PASSWORD:?GLPI_DB_PASSWORD manquant dans .env}
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      # Accès SQL direct pour les futures extractions : uniquement depuis cette machine
+      - "127.0.0.1:${GLPI_DB_HOST_PORT:-3307}:3306"
+    healthcheck:
+      # Script fourni par l'image officielle : vérifie que MariaDB accepte les connexions
+      # et que InnoDB est initialisé (la base est alors réellement prête).
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      options:
+        max-size: "10m"
+
+  glpi:
+    # Tag de la version corrective 11.0.11 (les tags « 11 » et « latest » bougent)
+    image: glpi/glpi:11.0.11
+    container_name: glpi-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      TZ: Europe/Paris
+      # Variables de l'installation silencieuse : les cinq sont requises, sinon GLPI
+      # affiche l'assistant d'installation web au lieu de s'installer seul.
+      GLPI_DB_HOST: db
+      GLPI_DB_PORT: "3306"
+      GLPI_DB_NAME: ${GLPI_DB_NAME:-glpi}
+      GLPI_DB_USER: ${GLPI_DB_USER:-glpi}
+      GLPI_DB_PASSWORD: ${GLPI_DB_PASSWORD:?GLPI_DB_PASSWORD manquant dans .env}
+    volumes:
+      # config, files, logs et marketplace sont sous /var/glpi : un seul volume nommé
+      - glpi_data:/var/glpi
+    ports:
+      # Écoute uniquement sur la machine locale (port 80 à l'intérieur du conteneur)
+      - "127.0.0.1:${GLPI_HTTP_PORT:-8082}:80"
+    logging:
+      options:
+        max-size: "10m"
+
+volumes:
+  db_data:
+  glpi_data:

@@ -1,0 +1,87 @@
+# Taxonomie des tickets : référence unique pour le code et les tests.
+# Documentation : docs/taxonomie.md (étiquettes) et docs/conception-tri.md (règles et modèle).
+# Toute modification passe par une PR et une entrée de JOURNAL.
+
+version: 1
+
+categories:
+  network: Réseau et connectivité
+  messaging: Messagerie et collaboration
+  workstation: Poste de travail
+  software: Logiciels et applications
+  accounts: Comptes et accès
+  printing: Impression et numérisation
+  infrastructure: Serveurs et infrastructure
+  backup: Sauvegarde et restauration
+  security: Sécurité
+  telephony: Téléphonie et mobiles
+  procurement: Achats et matériel
+  admin_billing: Administratif et facturation
+
+types:
+  incident: Incident
+  service_request: Demande de service
+  information: Demande d'information
+
+priorities:
+  P1: Critique
+  P2: Haute
+  P3: Moyenne
+  P4: Basse
+
+teams:
+  service_desk: Service desk (N1)
+  systems_network: Systèmes et réseau (N2/N3)
+  cloud_collab: Cloud et collaboration
+  security: Sécurité
+  procurement: Commandes
+  account_management: Gestion de compte et administratif
+
+# Canal d'entrée : connu à l'arrivée, jamais prédit.
+sources:
+  monitoring_connector: Connecteur de supervision (API)
+  monitoring_email: Adresse mail dédiée à la supervision
+  support_email: Adresse mail du support
+  admin_email: Adresse mail administrative
+  client_portal: Portail client
+  internal: Message interne au MSP
+
+# Sources traitées d'abord par les règles de supervision (modèle en dernier recours).
+monitoring_sources: [monitoring_connector, monitoring_email]
+
+# Routage : règles appliquées dans l'ordre, la première qui correspond l'emporte.
+# Une condition absente n'est pas vérifiée ; plusieurs conditions doivent toutes être vraies.
+routing:
+  - {category: [security], team: security}
+  - {category: [procurement], team: procurement}
+  - {category: [admin_billing], team: account_management}
+  - {priority: [P1], type: [incident], team: systems_network}
+  - {type: [information], team: service_desk}
+  - {category: [messaging], team: cloud_collab}
+  - {category: [network, infrastructure, backup], team: systems_network}
+  - {team: service_desk}  # règle par défaut
+
+# Harmonisation des gravités des outils de supervision vers les priorités du projet.
+monitoring_severity:
+  zabbix:
+    Disaster: P1
+    High: P2
+    Average: P3
+    Warning: P4
+    Information: P4
+    Not classified: P4
+  centreon:
+    DOWN: P1        # état d'un hôte
+    UNREACHABLE: P2 # état d'un hôte
+    CRITICAL: P2    # état d'un service
+    WARNING: P3
+    UNKNOWN: P3
+  # meraki : niveaux à relever dans la documentation de l'outil avant de les ajouter
+
+# Type de contrôle de supervision -> catégorie (mots-clés recherchés dans le nom du contrôle).
+monitoring_check_category:
+  infrastructure: [disk, cpu, memory, service, uptime, vm, datastore]
+  network: [interface, wan, vpn, ping, latency, switch, firewall, wifi]
+  backup: [backup, sauvegarde, replication]
+  security: [antivirus, edr, malware, ransomware]
+  printing: [printer, toner]

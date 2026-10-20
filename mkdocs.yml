@@ -19,14 +19,24 @@ plugins:
 
 nav:
   - Accueil: index.md
+  - Note de cadrage: cadrage.md
   - Pilotage:
       - Méthode agile: pilotage.md
       - Sprint 1: sprints/sprint-01.md
+      - Sprint 2: sprints/sprint-02.md
   - Veille:
       - Organisation: veille/index.md
       - Sources: veille/sources.md
       - Modèle de synthèse: veille/modele.md
-  - Taxonomie des tickets: taxonomie.md
+  - Tri des tickets:
+      - Conception du tri: conception-tri.md
+      - Taxonomie: taxonomie.md
+  - Service IA:
+      - Service LLM (Groq, Ollama): service-llm.md
+  - Incidents:
+      - Délai dépassé sur Ollama: incidents/2026-10-10-delai-depasse-ollama.md
+  - Sources de données:
+      - GLPI (installation et accès): glpi.md
   - Documentation: documentation.md
   - Intégration continue: ci.md
   - Décisions:
