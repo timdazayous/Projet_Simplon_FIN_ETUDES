@@ -37,6 +37,7 @@ nav:
       - Délai dépassé sur Ollama: incidents/2026-10-10-delai-depasse-ollama.md
   - Sources de données:
       - GLPI (installation et accès): glpi.md
+      - Jeux de données publics: donnees/jeux-publics.md
   - Documentation: documentation.md
   - Intégration continue: ci.md
   - Décisions:
