@@ -4,6 +4,18 @@
 
 Cette page explique **comment** un ticket ou une alerte est trié. Les étiquettes elles-mêmes sont définies dans la page [Taxonomie](taxonomie.md).
 
+## Point de départ : un workflow à base de règles
+
+La conception s'inspire d'un workflow réellement en place dans un MSP, connu du développeur :
+
+1. chaque mail reçu déclenche un traitement automatique qui identifie sa **source** (mail client, outil de supervision…) ;
+2. si toutes les informations nécessaires sont présentes, le **ticket est créé automatiquement** avec les bons paramètres, et le mail est archivé dans le dossier du client ;
+3. sinon, le mail **reste dans la boîte de réception** et un technicien le traite à la main ;
+4. un mail client lié à un ticket existant est **ajouté au ticket comme note** ; s'il semble plus urgent que le ticket, il part dans un **canal de revue de priorité**, où un humain confirme ou non la hausse ;
+5. les tickets urgents sont relayés dans un **canal de messagerie dédié**, pour être traités sans attendre.
+
+**Limite de ce workflow** : il repose uniquement sur des règles. Tout mail client qui ne correspond à aucune règle reste à traiter manuellement, et une partie de ces mails n'est pas traitée. **Le projet ajoute une couche d'IA** pour analyser ces textes libres et en traiter automatiquement une bien plus grande part.
+
 ## Le principe : combiner des règles et un modèle
 
 Deux approches étaient possibles :
@@ -61,14 +73,35 @@ Chaque outil de supervision a ses propres niveaux de gravité. Une **table de co
 
 Ces correspondances sont des valeurs par défaut. La priorité réelle peut dépendre de l'équipement (un serveur de production n'est pas un poste de test) : ce raffinement est prévu plus tard, si les corrections des techniciens le justifient.
 
-## La validation par le technicien
+## Automatisation et intervention humaine
 
-Le technicien voit **une seule file, déjà pré-triée**. Pour chaque élément, l'interface affiche les étiquettes proposées et **leur origine** : « règle de supervision » ou « modèle, confiance 87 % ». Le technicien accepte d'un geste, ou corrige ce qui est faux.
+Le but est de **réduire le traitement manuel au maximum**. Les techniciens ne valident pas chaque entrée : un humain n'intervient que lorsque le système n'est pas assez sûr de lui, ou lorsqu'une décision le justifie.
 
-Toutes les corrections sont enregistrées, quelle que soit l'origine de la proposition :
+| Situation | Ce que fait le système | Intervention humaine |
+|---|---|---|
+| Proposition **sûre** : règle de supervision, ou modèle au-dessus du **seuil de confiance** | Crée le ticket dans l'outil de ticketing avec catégorie, type, priorité et équipe, puis archive le message | Aucune : le technicien retrouve le ticket dans sa file habituelle |
+| Proposition **incertaine** : modèle sous le seuil, ou informations insuffisantes | Place l'élément dans une **file d'exceptions**, avec une proposition pré-remplie | Un technicien traite l'exception : il accepte la proposition ou la corrige |
+| **Message lié à un ticket existant** (même client, même sujet, référence du ticket) | Ajoute le message au ticket comme note | Aucune, sauf si l'urgence semble plus élevée (ligne suivante) |
+| Message qui laisse penser à une **urgence plus élevée** que la priorité du ticket | Envoie une demande en **revue de priorité** | Un humain confirme ou refuse la hausse de priorité |
+| Ticket **P1** | Notifie le **canal des urgences** | L'équipe concernée le prend en charge sans attendre |
 
-- une correction d'une proposition du **modèle** enrichit le jeu de données du prochain ré-entraînement ;
-- une correction d'une proposition d'une **règle** signale une règle à revoir.
+**Exemple de revue de priorité** : la panne d'un serveur secondaire est habituellement traitée en deux ou trois jours. Si le client écrit qu'il en a besoin au plus vite pour une raison urgente, le système le détecte et propose de relever la priorité. Un humain décide.
+
+**Ce qui n'est jamais automatique** : aucune action n'est exécutée sur les systèmes des clients, aucune réponse n'est envoyée au client, et aucune priorité n'est relevée sans confirmation humaine.
+
+### Le seuil de confiance
+
+Le modèle fournit une confiance pour chaque proposition. Le **seuil** décide de ce qui est automatisé et de ce qui part en exception : plus il est haut, moins il y a d'erreurs automatiques, mais plus il y a d'exceptions à traiter. Il sera fixé à partir de l'évaluation du modèle, en visant un taux d'erreur acceptable sur les tickets créés automatiquement, puis ajusté selon les corrections observées.
+
+### Apprendre sans effort supplémentaire
+
+Les techniciens ne font aucune saisie de plus. Le système apprend de ce qu'ils font déjà :
+
+- les **exceptions traitées** donnent la bonne réponse sur les cas difficiles ;
+- les **décisions de revue de priorité** indiquent si la détection d'urgence était juste ;
+- les **corrections faites après coup dans l'outil de ticketing** (changement de catégorie, d'équipe ou de priorité d'un ticket créé automatiquement) sont récupérées et signalent une erreur du modèle ou d'une règle.
+
+Ces retours alimentent le ré-entraînement du modèle, ou la révision d'une règle.
 
 ## Conséquences pour les données
 
@@ -76,6 +109,7 @@ Le générateur de tickets synthétiques et les données récupérées devront r
 
 - une part d'**alertes de supervision structurées**, au format des outils cités, avec leur gravité d'origine ;
 - une part de **texte libre**, sur les différents canaux ;
-- une part de **messages arrivés sur le mauvais canal**, pour que le modèle apprenne à ne pas se fier aveuglément à la source.
+- une part de **messages arrivés sur le mauvais canal**, pour que le modèle apprenne à ne pas se fier aveuglément à la source ;
+- une part de **messages liés à un ticket existant**, dont certains signalent une urgence plus élevée, pour la revue de priorité.
 
 Les proportions seront fixées avec le générateur.

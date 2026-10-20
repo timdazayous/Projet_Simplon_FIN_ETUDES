@@ -14,7 +14,7 @@ Pour chaque ticket entrant, l'application :
 2. **suggère une piste de résolution** via un LLM, à partir des tickets résolus et de la documentation ;
 3. **apprend des corrections** des techniciens (boucle de feedback, ré-entraînement).
 
-L'outil aide le technicien à décider, il n'agit jamais seul.
+Aucune action n'est exécutée sur les systèmes des clients : les tickets sont créés et classés automatiquement quand la confiance est suffisante, et les cas incertains sont soumis à un technicien.
 
 > Commanditaire fictif : un MSP d'une trentaine de personnes gérant une soixantaine de PME clientes.
 
