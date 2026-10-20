@@ -1,6 +1,6 @@
 # Note de cadrage
 
-**Statut** : version 1 du 19 octobre 2026, à valider par le développeur · **Issue** : #5 · **Compétences** : C1 (présentation du projet), C14 (analyse du besoin)
+**Statut** : validée par le développeur le 20 octobre 2026 · **Issue** : #5 · **Compétences** : C1 (présentation du projet), C14 (analyse du besoin)
 
 Cette note présente le projet, son commanditaire, ses objectifs, son périmètre, ses contraintes, son budget et son organisation. Elle sert de référence pour les spécifications et pour les rapports de certification.
 
@@ -22,6 +22,8 @@ Ces chiffres sont des **hypothèses de travail**, utilisées pour dimensionner l
 | Tickets créés par les utilisateurs | 100 à 150 par jour ouvré | ordre de grandeur d'un service desk de cette taille |
 | Alertes de supervision | 150 à 300 par jour | serveurs, réseau, sauvegardes, sécurité |
 | **Total à trier** | **250 à 450 éléments par jour** | une file unique, triée à la main |
+
+Ces ordres de grandeur ont été validés par le développeur au regard de son expérience terrain en MSP (environ 500 alertes de supervision par jour dans la structure qu'il connaît). Le volume d'alertes dépend surtout du nombre d'équipements supervisés et du réglage des seuils, davantage que du nombre de clients : il sera affiné avec le générateur de données synthétiques.
 
 ### Le problème
 
