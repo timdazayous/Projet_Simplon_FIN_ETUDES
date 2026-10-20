@@ -13,9 +13,9 @@ Projet de fin de formation **Développeur en intelligence artificielle (Simplon)
 **Solution** : pour chaque ticket entrant, l'application
 1. le **classe** (catégorie, urgence, équipe) via un modèle entraîné dans le projet ;
 2. **suggère une piste de résolution** via un LLM, à partir des tickets résolus et de la documentation ;
-3. **apprend des corrections** des techniciens (feedback → ré-entraînement).
+3. **apprend de ce que font déjà les techniciens** (exceptions traitées, revues de priorité, corrections après coup → ré-entraînement).
 
-L'outil aide le technicien à décider, il n'agit jamais seul. Pas de remédiation automatique.
+**Principe** : aucune action sur les systèmes des clients (pas de remédiation automatique, pas de réponse automatique au client). Les tickets sont créés et classés automatiquement quand la confiance est suffisante ; les cas incertains (file d'exceptions) et les hausses de priorité (revue de priorité) sont toujours soumis à un humain. Règles pour les alertes de supervision structurées, modèle pour le texte libre : voir `docs/conception-tri.md`.
 
 ## Le référentiel pilote les choix
 
@@ -67,12 +67,14 @@ Plus : clés dans `.env` uniquement, rôles PostgreSQL séparés (application / 
 
 **Outil de ticketing** : **GLPI 11.0.11** en Docker (`infra/glpi/`, tags épinglés `glpi/glpi:11.0.11` et `mariadb:10.11.19`, ports locaux 8082 et 3307, procédure dans `docs/glpi.md`). GLPI 12 sorti le 2026-10-18 : réévaluation suivie dans #24. Il fournit les sources API REST (API v2, OAuth2) et SQL direct. Zammad écarté (Elasticsearch, 4 Go de RAM minimum, orientation support client). Voir `docs/decisions/outil-ticketing.md`.
 
+**Taxonomie** : 12 catégories, 3 types (incident, demande de service, information), 4 priorités, 6 équipes déduites par règles de routage. Référence unique : `config/taxonomy.yaml` ; docs : `docs/taxonomie.md`, `docs/conception-tri.md`.
+
 **Stack** : Python 3.12 (uv), FastAPI, PostgreSQL + pgvector, PySpark / Spark SQL sur Parquet (dans Docker), DVC, MLflow, Evidently, pytest, GitHub Actions, Prometheus + Grafana, Loki, **React** pour le front.
 
 ## Décisions encore ouvertes
 
 Ne pas trancher sans en discuter avec le développeur :
-- Liste définitive des catégories, niveaux d'urgence et équipes (conditionne la labellisation)
+- Seuil de confiance de l'automatisation (à fixer après l'évaluation du modèle) ; règle de routage n°4 (P1 → systèmes et réseau) à confirmer ; niveaux de gravité Meraki à compléter
 - Répartition du corpus : généré / traduit / écrit à la main
 - Volume cible de l'historique Parquet
 - Hébergeur de pré-production

@@ -38,7 +38,7 @@ Tous les tickets et toutes les alertes arrivent dans **une file unique**. Un tec
 | Acteur | Rôle dans le projet | Attentes |
 |---|---|---|
 | Direction du MSP | Commanditaire | Gagner du temps de tri, réduire les erreurs de routage, sans coût supplémentaire |
-| Techniciens N1 et N2 | Utilisateurs principaux | Une proposition de classement fiable et une piste de résolution, qu'ils valident ou corrigent |
+| Techniciens N1 et N2 | Utilisateurs principaux | Des tickets créés et routés automatiquement quand c'est sûr, des exceptions déjà pré-analysées, une piste de résolution |
 | Responsable du service desk | Utilisateur et pilote | Suivre la qualité du tri et l'évolution du modèle |
 | Clients finaux (salariés des PME) | Émetteurs des tickets, bénéficiaires indirects | Être pris en charge plus vite par la bonne équipe |
 | Délégué à la protection des données (DPO) | Garant du RGPD | Données personnelles minimisées, pseudonymisées, jamais envoyées en clair à un service externe |
@@ -50,12 +50,12 @@ Tous les tickets et toutes les alertes arrivent dans **une file unique**. Un tec
 
 Pour chaque ticket ou alerte entrant, l'application doit :
 
-1. **proposer un classement** : catégorie, priorité et équipe destinataire, avec un indice de confiance ;
+1. **classer** : catégorie, type, priorité et équipe destinataire, avec un indice de confiance ;
 2. **suggérer une piste de résolution**, en s'appuyant sur les tickets déjà résolus et sur la documentation technique ;
-3. **permettre au technicien de valider ou de corriger** ce classement en un minimum d'actions ;
-4. **apprendre des corrections** : elles alimentent le ré-entraînement du modèle.
+3. **créer automatiquement le ticket** quand la confiance est suffisante, et **soumettre à un humain** les cas incertains (file d'exceptions) et les hausses de priorité (revue de priorité) ;
+4. **apprendre de ce que font déjà les techniciens** : exceptions traitées, décisions de revue de priorité et corrections faites après coup alimentent le ré-entraînement.
 
-L'outil **aide à décider, il n'agit jamais seul** : aucune action n'est exécutée automatiquement sur les systèmes des clients.
+**Aucune action n'est exécutée sur les systèmes des clients** et aucune réponse ne leur est envoyée automatiquement. La création et le classement des tickets sont automatisés quand la confiance est suffisante ; les cas incertains et les hausses de priorité sont toujours soumis à un humain. Le fonctionnement détaillé est décrit dans la page [Conception du tri](conception-tri.md).
 
 ### Objectifs techniques
 
@@ -73,17 +73,17 @@ Les valeurs cibles sont **provisoires** : elles seront confirmées une fois la p
 |---|---|---|
 | Qualité du classement par catégorie | F1-score macro sur un jeu de test rédigé différemment des données d'entraînement | ≥ 0,80 |
 | Qualité du routage | Part des tickets dont l'équipe proposée est la bonne | ≥ 85 % |
-| Temps de tri | Temps entre l'ouverture du ticket par le technicien et sa validation | divisé par deux par rapport à un tri manuel simulé |
-| Corrections | Part des propositions corrigées par les techniciens, suivie dans le temps | en baisse après chaque ré-entraînement |
+| Taux d'automatisation | Part des tickets et alertes traités sans intervention humaine (ticket créé automatiquement et non corrigé ensuite) | ≥ 70 % |
+| Corrections | Part des tickets créés automatiquement puis corrigés par un technicien, suivie dans le temps | en baisse après chaque ré-entraînement |
 | Disponibilité de la suggestion | Part des demandes de suggestion qui aboutissent (Groq ou secours) | ≥ 99 % |
 
 ## Périmètre
 
 | Dans le périmètre | Hors périmètre |
 |---|---|
-| Classement des tickets et alertes (catégorie, priorité, équipe) | Exécution automatique d'actions correctives |
+| Classement des tickets et alertes (catégorie, type, priorité, équipe) et création automatique des tickets sûrs | Exécution automatique d'actions correctives sur les systèmes des clients |
 | Suggestion de piste de résolution | Réponse automatique envoyée au client |
-| Interface de validation et de correction pour les techniciens | Intégration à un outil de ticketing réel en production (le projet utilise GLPI en local pour simuler le SI) |
+| File d'exceptions et revue de priorité, traitées par les techniciens | Intégration à un outil de ticketing réel en production (le projet utilise GLPI en local pour simuler le SI) |
 | Ré-entraînement à partir des corrections | Données réelles de clients : tous les tickets sont synthétiques ou issus de jeux de données publics |
 | Monitoring du modèle et de l'application | Application mobile |
 
