@@ -65,3 +65,9 @@
 **Contexte** : pendant le développement du déploiement Docker de GLPI (#22, PR #23), l'agent a constaté que l'image `glpi/glpi:latest` pointait déjà sur GLPI 12.0.0, publié le 2026-10-18. Vérifié en relecture sur Docker Hub : la version 11.0.11 a été publiée le même jour, la branche 11 reste donc maintenue.
 **Choix / Cause** : rester sur **GLPI 11.0.11**, avec un tag d'image épinglé (`glpi/glpi:11.0.11`, `mariadb:10.11.19`) plutôt que `latest`. Réévaluation de la 12 suivie dans l'Issue #24.
 **Raison / Résolution** : une version x.0.0 publiée la veille présente le plus de risques de régression ; la documentation de l'API v2 et les retours de la communauté portent sur la 11 ; épingler les tags garantit que l'installation reste reproductible (C4) même quand `latest` change. Alternative écartée : GLPI 12.0.0, à réévaluer après une ou deux versions correctives grâce à la veille.
+
+## 2026-10-20 — Note de cadrage validée
+**Type** : décision
+**Contexte** : C1 attend une présentation complète du projet (acteurs, objectifs, environnements et contraintes, budget, organisation, planification) et C14 un besoin formulé de façon vérifiable.
+**Choix / Cause** : note de cadrage rédigée par l'assistant et validée par le développeur (`docs/cadrage.md`) : volumétrie estimée à 250-450 tickets et alertes par jour, cinq indicateurs chiffrés (cibles provisoires, à confirmer après la baseline), budget réel nul et estimation de production à partir des tokens mesurés, cinq risques, feuille de route en cinq phases (fonctionnalités terminées vers la fin du premier trimestre 2027, finitions et répétitions d'avril à juin).
+**Raison / Résolution** : la volumétrie a été validée à partir de l'expérience terrain du développeur en MSP. La feuille de route privilégie un calendrier réaliste plutôt qu'optimiste : elle est revue à chaque fin de sprint, selon la vélocité mesurée.
