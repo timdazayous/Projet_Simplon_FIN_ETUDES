@@ -75,7 +75,7 @@ Plus : clés dans `.env` uniquement, rôles PostgreSQL séparés (application / 
 
 Ne pas trancher sans en discuter avec le développeur :
 - Seuil de confiance de l'automatisation (à fixer après l'évaluation du modèle) ; niveaux de gravité Meraki à compléter
-- Répartition du corpus : généré / public traduit / écrit à la main (proposition : entraînement surtout généré, test public traduit + 50 à 100 tickets écrits par le développeur)
+- Répartition précise du corpus (principe acté : base publique traduite + générateur qui comble les manques + relecture des étiquettes du test par le développeur) : après l'inventaire #27
 - Volume cible de l'historique Parquet
 - Hébergeur de pré-production
 - Ergonomie et design du front (à débattre ensemble, le développeur débute en React)
@@ -134,7 +134,7 @@ Autres skills (RGPD, front accessible, MLOps…), plugins et serveurs MCP : **à
 Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https://github.com/users/timdazayous/projects/2), sprints de 2 semaines à partir du 2026-10-06, jalon « Phase 1 — Cadrage et fondations » (échéance 2026-11-02). Consulter les Issues avec `gh issue list` plutôt que de recopier leur contenu ici.
 
 - **Sprint 1** (6 → 19 octobre, terminé) : 15 points sur 18 ; #8 reportée. Revue et rétrospective dans `docs/sprints/sprint-01.md`.
-- **Sprint 2** (20 octobre → 2 novembre) : #8 première synthèse de veille, #6 taxonomie (PR brouillon #17), #5 note de cadrage, ~~#22 GLPI en Docker~~ (premier démarrage à faire avec le développeur). Backlog : #13, #15 (optionnelle), #24 (GLPI 12). Temps développeur réduit : tâches découpées en séances courtes.
+- **Sprint 2** (20 octobre → 2 novembre) : ~~#22 GLPI~~, ~~#5 cadrage~~, ~~#6 taxonomie~~, #27 inventaire des jeux publics (Sonnet), #8 première synthèse de veille. Premier démarrage de GLPI à faire avec le développeur. Sprint 3 : #26 générateur. Backlog : #13, #15 (optionnelle), #24 (GLPI 12).
 - **Ensuite** : générateur de tickets synthétiques (après la taxonomie), extraction depuis GLPI (API et SQL)
 
 Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`.

@@ -22,6 +22,7 @@ Jalon : Phase 1 — Cadrage et fondations (fin du jalon le 2 novembre).
 
 | Date | Changement | Raison |
 |---|---|---|
+| 20 octobre 2026 | #27 « Inventaire des jeux de données publics » (2 points) ajoutée au sprint | Le développeur a choisi de bâtir le corpus surtout sur des données publiques, pour limiter la rédaction manuelle. Il faut d'abord identifier les jeux disponibles, leurs licences et leurs formats avant de lancer le générateur (#26). Tâche confiée à un agent, sans temps développeur. |
 
 ## Revue (à compléter le 2 novembre 2026)
 

@@ -89,3 +89,9 @@
 **Contexte** : la règle de routage n°4 envoie tout incident P1 (hors sécurité, commandes et administratif) à l'équipe Systèmes et réseau, y compris un incident critique sur la messagerie, qui relèverait sinon de Cloud et collaboration.
 **Choix / Cause** : règle conservée telle quelle.
 **Raison / Résolution** : les incidents P1 sont rares et demandent le niveau d'expertise le plus élevé ; distinguer les cas selon le service concerné ajouterait de la complexité pour un cas marginal. La règle sera affinée si les corrections des techniciens montrent qu'elle se trompe souvent.
+
+## 2026-10-20 — Corpus fondé sur des données publiques
+**Type** : décision
+**Contexte** : pour éviter que le modèle apprenne le style du générateur, le jeu de test doit être rédigé différemment des données d'entraînement. Rédiger 50 à 100 tickets à la main coûterait trop de temps au développeur, déjà pris par la veille.
+**Choix / Cause** : base principale du corpus constituée de jeux de données publics, traduits en français si nécessaire ; générateur aligné sur leur format, qui comble les manques (alertes de supervision, administratif, mauvais canal, messages liés à un ticket, données personnelles fictives). Le développeur relit les étiquettes d'environ 50 tickets du jeu de test au lieu de les rédiger. Proportions par défaut du générateur validées. Inventaire des jeux publics préalable (#27).
+**Raison / Résolution** : des textes écrits par de vraies personnes donnent des formulations plus naturelles ; relire une étiquette est bien plus rapide que rédiger un ticket, tout en gardant un regard métier sur le jeu de test. La traduction devient une étape d'homogénéisation des données (C3). Répartition précise à fixer après l'inventaire.
