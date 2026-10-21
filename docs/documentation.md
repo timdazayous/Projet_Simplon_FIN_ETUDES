@@ -12,6 +12,10 @@ La documentation destinée au jury est écrite en Markdown dans le dossier `docs
 
 La configuration du site est dans le fichier `mkdocs.yml` à la racine du dépôt.
 
+## Protection des données des visiteurs
+
+Par défaut, le thème charge ses polices depuis Google Fonts : chaque visiteur transmet alors son adresse IP à Google, sans en être informé, ce qui pose un problème au regard du RGPD. L'option `font: false` du thème désactive ce chargement : le site utilise les polices déjà installées sur l'appareil du visiteur. Le site publié ne charge ainsi aucune ressource depuis un service tiers, ce que l'on vérifie après chaque build avec `grep -rl "fonts.googleapis" site`, qui ne doit rien trouver. **Alternative écartée** : héberger les polices dans le dépôt, qui ajoute des fichiers à maintenir pour un gain purement esthétique.
+
 ## Commandes en local
 
 | Commande | Rôle |
