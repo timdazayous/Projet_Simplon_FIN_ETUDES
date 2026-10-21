@@ -1,6 +1,6 @@
 # Générateur de documentation : Material for MkDocs ou Zensical
 
-**Statut : essai réalisé le 2026-10-21, décision à prendre par le développeur.** Cette page fournit les éléments de choix ; elle ne change rien au site publié. Suivi : Issue #13.
+**Statut : décision prise par le développeur le 2026-10-21 : migrer vers Zensical après le 5 novembre 2026 (option B), avec retour à Material for MkDocs épinglé si le contrôle d'accessibilité n'est pas concluant.** Essai réalisé le 2026-10-21. Suivi : Issue #13 (essai et décision).
 
 ## Contexte
 
@@ -73,7 +73,7 @@ Constat annexe : dans les deux cas, la feuille de style des polices est chargée
 
 Je recommande l'**option B en deux temps**, avec la variante `classic` pour limiter les changements visibles : d'abord une PR de migration avec contrôle visuel et d'accessibilité (contraste, clavier, lecteur d'écran, recherche en français), puis fusion si le contrôle est bon, peu après le 5 novembre. Arguments : l'essai passe en mode strict sans modifier `mkdocs.yml`, le retour en arrière est trivial (le `mkdocs.yml` reste valide pour les deux outils), le site est petit et sans plugin, et rester sur un outil sans maintenance finira par coûter plus cher. Si le contrôle révèle un problème d'accessibilité, l'option A (Material épinglé) reste un repli sans urgence.
 
-**La décision reste au développeur.** Elle sera consignée dans `JOURNAL.md` et dans le mémo oral.
+**Décision du développeur (2026-10-21)** : recommandation retenue. La migration est faite après le 5 novembre ; si elle n'apporte pas de bénéfice suffisant ou si le contrôle d'accessibilité échoue, le site revient sur Material for MkDocs épinglé. Décision consignée dans `JOURNAL.md`.
 
 ## Étapes concrètes d'une migration (non appliquées)
 

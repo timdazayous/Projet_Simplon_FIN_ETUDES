@@ -63,7 +63,7 @@ Plus : clés dans `.env` uniquement, rôles PostgreSQL séparés (application / 
 - **Local** : `docker compose` avec la stack complète (référence pour les procédures d'installation).
 - **Pré-production** : hébergement gratuit allégé (API + front + Postgres). Hébergeur à choisir plus tard. D'ici là, **toute la configuration passe par variables d'environnement**.
 
-**Documentation** : OpenAPI généré par FastAPI pour les API ; **MkDocs + Material** pour la doc projet, publiée sur GitHub Pages par la CI (https://timdazayous.github.io/Projet_Simplon_FIN_ETUDES/). Toute nouvelle page de `docs/` doit être ajoutée à la `nav` de `mkdocs.yml`. Material atteint sa **fin de vie le 5 novembre 2026** (annoncé dans la 9.7.7) : essai de Zensical suivi dans #13 (sprint 3). Sphinx écarté (plus lourd).
+**Documentation** : OpenAPI généré par FastAPI pour les API ; **MkDocs + Material** pour la doc projet, publiée sur GitHub Pages par la CI (https://timdazayous.github.io/Projet_Simplon_FIN_ETUDES/). Toute nouvelle page de `docs/` doit être ajoutée à la `nav` de `mkdocs.yml`. Material atteint sa **fin de vie le 5 novembre 2026** (annoncé dans la 9.7.7) : migration vers Zensical (variante `classic`) décidée, à faire après cette date (#35), repli sur Material épinglé si le contrôle d'accessibilité échoue (`docs/decisions/documentation-zensical.md`). Sphinx écarté (plus lourd).
 
 **Outil de ticketing** : **GLPI 11.0.11** en Docker (`infra/glpi/`, tags épinglés `glpi/glpi:11.0.11` et `mariadb:10.11.19`, ports locaux 8082 et 3307, procédure dans `docs/glpi.md`). GLPI 12 sorti le 2026-10-18 : réévaluation suivie dans #24. Il fournit les sources API REST (API v2, OAuth2) et SQL direct. Zammad écarté (Elasticsearch, 4 Go de RAM minimum, orientation support client). Voir `docs/decisions/outil-ticketing.md`.
 
@@ -144,9 +144,8 @@ Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https
 En attente du développeur :
 - **Premier démarrage de GLPI** ensemble (mots de passe par défaut à changer, mesure de la RAM ; la VM Docker est limitée à ~3,8 Go, à augmenter plus tard pour la stack complète).
 - Mettre à jour Ollama (`winget upgrade Ollama.Ollama`, cible ≥ 0.40.7) et FreshRSS (`pull` puis `up -d`).
-- Décider : conserver ou retirer la source FreshRSS 1.30.2 de la synthèse du 2026-10-21 (Opus recommande de la conserver).
-- #31 réduite le 2026-10-21 à la mention « généré par IA » (1 point) ; formation et chaîne de valeur en point de vigilance dans `docs/cadrage.md`.
-- Sprint 3 avancé le 2026-10-21 (quota) : #26 et #13 lancées en agents Sonnet ; PR #33 (essai Zensical, `Refs #13`) en relecture.
+- Décidé le 2026-10-21 : source FreshRSS 1.30.2 conservée ; #31 réduite à la mention « généré par IA » (1 point), formation et chaîne de valeur en point de vigilance dans `docs/cadrage.md` ; migration vers Zensical après le 5 novembre (#35, repli Material épinglé), #13 fermée.
+- Sprint 3 avancé le 2026-10-21 (quota) : #13 terminée (PR #33) ; #26 en relecture (PR #34).
 
 Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`, `optionnel` (bonus abandonnable sans impact sur le référentiel).
 
