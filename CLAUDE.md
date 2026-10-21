@@ -144,7 +144,9 @@ Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https
 En attente du développeur :
 - **Premier démarrage de GLPI** ensemble (mots de passe par défaut à changer, mesure de la RAM ; la VM Docker est limitée à ~3,8 Go, à augmenter plus tard pour la stack complète).
 - Mettre à jour Ollama (`winget upgrade Ollama.Ollama`, cible ≥ 0.40.7) et FreshRSS (`pull` puis `up -d`).
-- Décider : retirer la source FreshRSS 1.30.2 de la synthèse du 2026-10-21 (proposé, peu pertinente pour le projet) ; réduire #31 à la seule mention « généré par IA » dans l'interface, le reste devenant un point de vigilance dans le cadrage (proposé).
+- Décider : conserver ou retirer la source FreshRSS 1.30.2 de la synthèse du 2026-10-21 (Opus recommande de la conserver).
+- #31 réduite le 2026-10-21 à la mention « généré par IA » (1 point) ; formation et chaîne de valeur en point de vigilance dans `docs/cadrage.md`.
+- Sprint 3 avancé le 2026-10-21 (quota) : #26 et #13 lancées en agents Sonnet ; PR #33 (essai Zensical, `Refs #13`) en relecture.
 
 Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`, `optionnel` (bonus abandonnable sans impact sur le référentiel).
 

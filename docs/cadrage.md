@@ -141,6 +141,7 @@ Si le commanditaire déployait l'outil pour de bon, les postes de coût seraient
 | Quotas de l'offre gratuite de Groq | Suggestions indisponibles | Gestion des erreurs 429, repli sur Ollama, monitoring des erreurs |
 | Ressources limitées du poste (sans GPU, 15 Go de RAM) | Lenteur, impossibilité de tout lancer en même temps | Modèles légers, mesures de charge, services démarrés à la demande |
 | Évolution des outils (fin de support, nouvelles versions) | Incompatibilités | Versions épinglées, veille hebdomadaire, Issues de réévaluation |
+| Exigences de l'AI Act (point de vigilance) | Utilisation de l'outil sans compréhension de ses limites ; obligations mal identifiées | Mention « généré par IA » sur chaque suggestion (article 50, critère d'acceptation de l'interface). En cas de déploiement réel : sensibilisation des techniciens à la lecture des suggestions et des scores de confiance (article 4, maîtrise de l'IA). Le projet intègre un modèle tiers sans le modifier : il se situe en aval de la chaîne de valeur, pas comme fournisseur d'un modèle d'IA à usage général. Éléments issus de la veille, à confirmer, et non un avis juridique |
 
 ## Organisation et planification
 
