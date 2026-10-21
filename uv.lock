@@ -757,6 +757,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "openai" },
     { name = "python-dotenv" },
+    { name = "pyyaml" },
 ]
 
 [package.dev-dependencies]
@@ -774,6 +775,7 @@ docs = [
 requires-dist = [
     { name = "openai", specifier = ">=3.28.0" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
 ]
 
 [package.metadata.requires-dev]
