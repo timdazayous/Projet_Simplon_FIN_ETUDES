@@ -687,8 +687,9 @@ SUBJECT_PREFIXES_URGENT = ("URGENT - ", "URGENT : ", "[URGENT] ", "!!! ")
 
 # category -> [(check name, plain-text output), ...]. Check names use the English
 # wording of the tools (Zabbix templates, Centreon plugins). Categories absent from
-# the keywords of ``monitoring_check_category`` ("unmatched" checks) exercise the
-# "no rule matches" path; the generator verifies every entry against the taxonomy.
+# the keywords of ``monitoring_check_category``, and a few checks of other categories
+# that contain no keyword ("unmatched" checks), exercise the "no rule matches" path.
+# The generator verifies every entry against the taxonomy.
 ALERT_CHECKS: dict[str, list[tuple[str, str]]] = {
     "infrastructure": [
         ("Free disk space is less than 10% on volume C:", "Free space: {pct}% ({gb} GB left)"),
@@ -699,6 +700,8 @@ ALERT_CHECKS: dict[str, list[tuple[str, str]]] = {
         ("Host has been restarted (uptime < 10m)", "Uptime: {n} seconds"),
         ("VM snapshot older than 3 days", "Snapshot age: {n} days"),
         ("Datastore free space below 15%", "Free space: {pct}%"),
+        # Directory check with no taxonomy keyword: exercises the "no rule" path.
+        ("LDAP bind time above threshold", "Bind time: {n}00 ms"),
     ],
     "network": [
         ("Interface Gi0/{n}: link down", "Interface Gi0/{n} operational status: down"),
@@ -726,13 +729,12 @@ ALERT_CHECKS: dict[str, list[tuple[str, str]]] = {
         ("Toner level is low (below 10%)", "Black toner: {pct}%"),
         ("Printer paper jam", "Error code 13.{n}"),
     ],
-    # Unmatched checks: no keyword of the taxonomy appears in their name.
+    # Unmatched checks: no keyword of the taxonomy appears in their name (also: LDAP above).
     "messaging": [
         ("Mail queue length is too high", "Queue length: {n}00 messages"),
         ("Certificate expires in less than 14 days (OWA)", "Days left: {n}"),
     ],
     "accounts": [
-        ("LDAP bind time above threshold", "Bind time: {n}00 ms"),
         ("Too many failed logons", "Failed logons in 10 minutes: {n}0"),
     ],
     "software": [
