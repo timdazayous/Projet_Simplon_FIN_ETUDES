@@ -1,0 +1,52 @@
+# PROPOSITION de correspondance des étiquettes d'origine vers config/taxonomy.yaml (Issue #29).
+# À valider par le développeur : tant qu'elle ne l'est pas, ces étiquettes sont des suggestions,
+# conservées à côté des étiquettes d'origine (jamais à leur place).
+# Une valeur `null` signifie « rattachement impossible » : le ticket garde sa catégorie vide.
+
+customer_support:
+  type:
+    Incident: incident
+    Problem: incident # à confirmer : un « problème » ITIL est la cause d'incidents
+    Request: service_request
+    Change: service_request
+    # aucun équivalent pour `information` dans ce jeu
+  priority:
+    low: P4
+    medium: P3
+    high: P2 # le jeu n'a pas de niveau critique : P1 n'est jamais proposé
+  # Règles ordonnées : la première qui correspond l'emporte. Une règle correspond si l'un de ses
+  # `tags` figure parmi les tags du ticket (sans tenir compte de la casse) ou si l'un de ses
+  # `keywords` apparaît dans le sujet. `doubtful: true` signale un rattachement fragile.
+  category_rules:
+    - {name: security, category: security, tags: [Security, Virus, Malware, Phishing, Data Breach, Breach, Vulnerability, Unauthorized Access, Cyberattack, Cybersecurity, Antivirus, Data Leak, Intrusion, Security Breach, Security Incident], keywords: [phishing, malware, virus, ransomware, breach, datenleck, sicherheitsvorfall]}
+    - {name: backup, category: backup, tags: [Backup, Data Backup], keywords: [backup, sicherung, datensicherung]}
+    - {name: printing, category: printing, tags: [Printer, Scanner], keywords: [printer, printing, scanner, drucker, drucken]}
+    - {name: telephony, category: telephony, tags: [Android, Smart Home], keywords: [phone, smartphone, telefon, handy, voip]}
+    - {name: accounts, category: accounts, tags: [Login, Account, Password, Password Reset, Credentials, Authentication, Access Control, Access Management, Authorization, Access], keywords: [password, passwort, login, anmeldung, account, konto, credentials]}
+    - {name: messaging, category: messaging, tags: [Email, Outlook, Outlook Account], keywords: [email, e-mail, outlook, mailbox, postfach]}
+    - {name: network, category: network, tags: [Network, VPN, Wi-Fi, Router, Connectivity, Switch, Firewall, Internet, Netzwerk, Cisco IOS], keywords: [network, netzwerk, vpn, wifi, wi-fi, wlan, router, firewall, internet]}
+    - {name: workstation, category: workstation, tags: [Hardware, Device, Driver, Windows, macOS, Ubuntu, USB, Bluetooth, Audio, Equipment, Windows 10], keywords: [laptop, monitor, keyboard, tastatur, bildschirm, macbook]}
+    - {name: infrastructure, category: infrastructure, tags: [Server, Infrastructure, Server Overload, Database, Cloud, Storage, Infrastruktur, Cloud Infrastructure, Microsoft SQL Server, MySQL], keywords: [server, database, datenbank]}
+    - {name: software, category: software, tags: [Software, Software Update, Bug, Crash, Integration, Compatibility, Update, Software Conflict, Software Compatibility, Software Issue, Software Problem, Application, API], keywords: [software, application, update, installation, crash, absturz]}
+    # Étiquettes très génériques (pannes, interruptions) : rattachement à infrastructure incertain.
+    - {name: outage_generic, category: infrastructure, doubtful: true, tags: [Outage, Disruption, Recovery, System Outage, Service Disruption, System Downtime]}
+  # Étiquettes jamais utilisées pour la catégorie car trop génériques : Tech Support, IT,
+  # Performance, Feedback, Feature, Documentation, Product, Support, Maintenance, Sales, Marketing.
+
+it_support:
+  # Les étiquettes d'origine sont les classes du jeu. Pas de priorité ni de type dans ce jeu.
+  category:
+    Active Directory: accounts
+    Computer-Services: workstation
+    Fileservice: infrastructure
+    O365: messaging
+    Software: software
+    EOL: null # tickets automatiques « système à mettre en fin de vie » : sens à confirmer
+    Support general: null # trop vague
+  # Étiquettes du jeu dont le rattachement est jugé fragile (signalées dans le rapport).
+  doubtful: [Fileservice, Computer-Services]
+
+support_urgency:
+  # Ce jeu ne porte que sur l'urgence (`expected` : urgent ou no) : il alimente la revue de
+  # priorité, pas la catégorie. Aucune étiquette de la taxonomie n'est proposée.
+  category: {}

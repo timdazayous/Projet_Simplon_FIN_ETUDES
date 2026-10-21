@@ -20,6 +20,28 @@ docs = [
     "mkdocs>=1.6,<2",
     "mkdocs-material>=9.7,<10",
 ]
+# Récupération des jeux publics (Issue #29) : absent de la CI et de l'installation de base.
+data = [
+    "huggingface-hub>=0.30",
+    "pyarrow>=18",
+    "psutil>=6",
+]
+# Traduction OPUS-MT sur CPU : dépendances lourdes, groupe séparé.
+translate = [
+    {include-group = "data"},
+    "torch>=2.5",
+    "transformers>=4.50",
+    "sentencepiece>=0.2",
+]
+
+[tool.uv.sources]
+# Sur Linux, PyPI fournit torch avec CUDA (plusieurs Go) : on impose la version CPU.
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.ruff]
 line-length = 100
