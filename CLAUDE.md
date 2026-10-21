@@ -137,7 +137,7 @@ Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https
 État au 2026-10-21 :
 - **Sprint 1** (6 → 19 octobre) : terminé, 15 points sur 18. Compte rendu : `docs/sprints/sprint-01.md`.
 - **Sprint 2** (20 octobre → 2 novembre) : **toutes les Issues terminées** (#22 GLPI en Docker, #5 cadrage, #6 taxonomie et conception du tri, #27 inventaire des jeux publics, #8 première synthèse de veille). Revue et rétrospective à faire le 2 novembre dans `docs/sprints/sprint-02.md`.
-- **Sprint 3** (3 → 16 novembre), Issues prêtes : #26 générateur de tickets (Sonnet), #29 récupération et traduction des jeux publics (Sonnet, mesurer la charge du poste sur un échantillon avant tout traitement en masse), #13 essai de Zensical (avant le 5 novembre).
+- **Sprint 3** (3 → 16 novembre) : #26 et #13 terminées en avance ; restent #29 récupération et traduction des jeux publics (Sonnet, mesurer la charge du poste sur un échantillon avant tout traitement en masse) et #35 migration Zensical (après le 5 novembre).
 - **Backlog** : #15 tri automatique de la veille (optionnel), #24 réévaluer GLPI 12, #30 benchmark des modèles de décision (phase 3), #31 exigences AI Act.
 - **Ensuite** : extraction depuis GLPI (API et SQL), base de données Merise / RGPD, API de données.
 
@@ -145,7 +145,9 @@ En attente du développeur :
 - **Premier démarrage de GLPI** ensemble (mots de passe par défaut à changer, mesure de la RAM ; la VM Docker est limitée à ~3,8 Go, à augmenter plus tard pour la stack complète).
 - Mettre à jour Ollama (`winget upgrade Ollama.Ollama`, cible ≥ 0.40.7) et FreshRSS (`pull` puis `up -d`).
 - Décidé le 2026-10-21 : source FreshRSS 1.30.2 conservée ; #31 réduite à la mention « généré par IA » (1 point), formation et chaîne de valeur en point de vigilance dans `docs/cadrage.md` ; migration vers Zensical après le 5 novembre (#35, repli Material épinglé), #13 fermée.
-- Sprint 3 avancé le 2026-10-21 (quota) : #13 terminée (PR #33) ; #26 en relecture (PR #34).
+- Sprint 3 avancé le 2026-10-21 (quota) : #13 terminée (PR #33), #26 terminée (PR #34, générateur `src/data/`). Restent #29 (avec le développeur, charge CPU) et #35 (après le 5 novembre).
+- #36 (site sans Google Fonts, RGPD, ajoutée au sprint 2) : PR #37 en attente de lecture du développeur.
+- Le dossier `.claude/worktrees/agent-aa30d55e0f81df5c4` n'a pas pu être supprimé (fichier verrouillé par Windows) : le supprimer à la main plus tard.
 
 Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`, `optionnel` (bonus abandonnable sans impact sur le référentiel).
 
