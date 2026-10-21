@@ -48,7 +48,7 @@ Chaque brique existe parce qu'une compétence l'exige. Ne pas simplifier une bri
 - **Classifieur entraîné dans le projet** (E3) : baseline TF-IDF + régression logistique (scikit-learn), puis CamemBERT distillé si le gain est démontré. Ré-entraîné par la CI. Jamais remplacé par un service externe.
 - **Service LLM existant** (E2) pour résumé et suggestion : **Groq** (free tier) en principal, **Ollama** local en secours. Une seule abstraction compatible OpenAI, fournisseur choisi par `LLM_PROVIDER=groq|ollama`. Erreurs 429 gérées (retry/backoff, repli Ollama).
 
-**Modèles de classification « JEV-like »** (ex. modèles Ollama nimble/tev1, Cloudflare Clef) : classifieurs peu verbeux, bon marché sur gros volume, qui renvoient des scores de confiance. Uniquement **comparateurs dans le benchmark** et sujet de veille, jamais en remplacement du classifieur maison.
+**Modèles de décision (« Jev-like »)** (Jev de TypeSafe AI, Clef de Cloudflare, pplx-decider de Perplexity, Kev en open source ; pris en charge par Ollama depuis septembre 2026, voir la veille du 2026-10-21 et #30) : classifieurs peu verbeux, bon marché sur gros volume, qui renvoient des scores de confiance. Uniquement **comparateurs dans le benchmark** et sujet de veille, jamais en remplacement du classifieur maison.
 
 **Données sensibles en base** :
 | Donnée | Traitement |
