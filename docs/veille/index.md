@@ -75,4 +75,4 @@ Les sources retenues et leur évaluation sont détaillées dans la page [Sources
 
 ## Synthèses publiées
 
-*Aucune pour l'instant.* La première synthèse sera publiée après la première séance.
+- [Veille du 21 octobre 2026 — synthèse de lancement](2026-10-21.md) : modèles de décision dans Ollama, sécurité de GLPI et version 12, fin de vie de Material for MkDocs, AI Act (transparence et maîtrise de l'IA).

@@ -28,6 +28,8 @@ nav:
       - Organisation: veille/index.md
       - Sources: veille/sources.md
       - Modèle de synthèse: veille/modele.md
+      - "Synthèses":
+          - 21 octobre 2026 (lancement): veille/2026-10-21.md
   - Tri des tickets:
       - Conception du tri: conception-tri.md
       - Taxonomie: taxonomie.md
