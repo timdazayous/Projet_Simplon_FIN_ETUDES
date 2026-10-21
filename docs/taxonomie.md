@@ -38,6 +38,7 @@ La version lisible par le code est `config/taxonomy.yaml` : c'est la **référen
 | Problème de mot de passe dans un logiciel | `accounts` pour un problème d'identifiant ou de droits, `software` si le logiciel est en panne | « Mot de passe refusé dans l'ERP » : `accounts` |
 | Mail suspect | `security` dès qu'il y a suspicion d'hameçonnage | « Mail étrange de la banque » : `security` |
 | Alerte de supervision | Selon la **ressource concernée**, pas selon l'outil qui alerte | « Disque plein » : `infrastructure` ; « sauvegarde en échec » : `backup` |
+| Échecs de connexion | `security` **par défaut** dès qu'une alerte signale un volume anormal d'échecs (attaque par force brute possible) : le technicien la bascule en `accounts` si la vérification écarte l'attaque. `accounts` pour un compte isolé verrouillé ou un faible nombre de tentatives | Alerte « trop d'échecs de connexion en 10 minutes » : `security` ; « compte verrouillé » : `accounts` |
 | Matériel en panne ou matériel à acheter | `workstation` (ou la catégorie du matériel) pour une panne, `procurement` pour un achat ou un remplacement à commander | « Mon écran ne s'allume plus » : `workstation` ; « Il me faut un second écran » : `procurement` |
 | Licence | `software` pour un problème d'activation ou d'utilisation, `procurement` pour en acheter, `admin_billing` pour une question de facturation | « Commander 5 licences Office » : `procurement` |
 
