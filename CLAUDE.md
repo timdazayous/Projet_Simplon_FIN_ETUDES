@@ -146,7 +146,8 @@ En attente du développeur :
 - Mettre à jour Ollama (`winget upgrade Ollama.Ollama`, cible ≥ 0.40.7) et FreshRSS (`pull` puis `up -d`).
 - Décidé le 2026-10-21 : source FreshRSS 1.30.2 conservée ; #31 réduite à la mention « généré par IA » (1 point), formation et chaîne de valeur en point de vigilance dans `docs/cadrage.md` ; migration vers Zensical après le 5 novembre (#35, repli Material épinglé), #13 fermée.
 - Sprint 3 avancé le 2026-10-21 (quota) : #13 terminée (PR #33), #26 terminée (PR #34, générateur `src/data/`). Restent #29 (avec le développeur, charge CPU) et #35 (après le 5 novembre).
-- #36 (site sans Google Fonts, RGPD, ajoutée au sprint 2) : PR #37 en attente de lecture du développeur.
+- #36 (site sans Google Fonts, RGPD, ajoutée au sprint 2) : terminée (PR #37).
+- #29 lancée le 2026-10-21 en agent Sonnet, phase 1 sur échantillon de 50 tickets (mesure de charge) ; PR attendue avec `Refs #29`, traduction complète à décider ensuite (local ou Kaggle/Colab).
 - Le dossier `.claude/worktrees/agent-aa30d55e0f81df5c4` n'a pas pu être supprimé (fichier verrouillé par Windows) : le supprimer à la main plus tard.
 
 Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`, `optionnel` (bonus abandonnable sans impact sur le référentiel).
