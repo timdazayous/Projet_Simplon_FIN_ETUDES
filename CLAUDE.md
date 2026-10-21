@@ -63,7 +63,7 @@ Plus : clés dans `.env` uniquement, rôles PostgreSQL séparés (application / 
 - **Local** : `docker compose` avec la stack complète (référence pour les procédures d'installation).
 - **Pré-production** : hébergement gratuit allégé (API + front + Postgres). Hébergeur à choisir plus tard. D'ici là, **toute la configuration passe par variables d'environnement**.
 
-**Documentation** : OpenAPI généré par FastAPI pour les API ; **MkDocs + Material** pour la doc projet, publiée sur GitHub Pages par la CI (https://timdazayous.github.io/Projet_Simplon_FIN_ETUDES/). Toute nouvelle page de `docs/` doit être ajoutée à la `nav` de `mkdocs.yml`. Material est en maintenance jusqu'à ~novembre 2026 : suivi dans #13. Sphinx écarté (plus lourd).
+**Documentation** : OpenAPI généré par FastAPI pour les API ; **MkDocs + Material** pour la doc projet, publiée sur GitHub Pages par la CI (https://timdazayous.github.io/Projet_Simplon_FIN_ETUDES/). Toute nouvelle page de `docs/` doit être ajoutée à la `nav` de `mkdocs.yml`. Material atteint sa **fin de vie le 5 novembre 2026** (annoncé dans la 9.7.7) : essai de Zensical suivi dans #13 (sprint 3). Sphinx écarté (plus lourd).
 
 **Outil de ticketing** : **GLPI 11.0.11** en Docker (`infra/glpi/`, tags épinglés `glpi/glpi:11.0.11` et `mariadb:10.11.19`, ports locaux 8082 et 3307, procédure dans `docs/glpi.md`). GLPI 12 sorti le 2026-10-18 : réévaluation suivie dans #24. Il fournit les sources API REST (API v2, OAuth2) et SQL direct. Zammad écarté (Elasticsearch, 4 Go de RAM minimum, orientation support client). Voir `docs/decisions/outil-ticketing.md`.
 
@@ -132,10 +132,26 @@ Autres skills (RGPD, front accessible, MLOps…), plugins et serveurs MCP : **à
 
 ## Priorités actuelles
 
-Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https://github.com/users/timdazayous/projects/2), sprints de 2 semaines à partir du 2026-10-06, jalon « Phase 1 — Cadrage et fondations » (échéance 2026-11-02). Consulter les Issues avec `gh issue list` plutôt que de recopier leur contenu ici.
+Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https://github.com/users/timdazayous/projects/2, public). Sprints de 2 semaines depuis le 2026-10-06. Jalons : « Phase 1 — Cadrage et fondations » (→ 2026-11-02), « Phase 2 — Données (E1) » (→ 2026-12-13). **En début de séance, faire le point** avec `gh pr list`, `gh issue list` et l'état du Project plutôt que de se fier à ce résumé.
 
-- **Sprint 1** (6 → 19 octobre, terminé) : 15 points sur 18 ; #8 reportée. Revue et rétrospective dans `docs/sprints/sprint-01.md`.
-- **Sprint 2** (20 octobre → 2 novembre) : ~~#22 GLPI~~, ~~#5 cadrage~~, ~~#6 taxonomie~~, ~~#27 inventaire des jeux publics~~, #8 première synthèse de veille. Premier démarrage de GLPI à faire avec le développeur. Sprint 3 : #26 générateur. Backlog : #13, #15 (optionnelle), #24 (GLPI 12).
-- **Ensuite** : générateur de tickets synthétiques (après la taxonomie), extraction depuis GLPI (API et SQL)
+État au 2026-10-21 :
+- **Sprint 1** (6 → 19 octobre) : terminé, 15 points sur 18. Compte rendu : `docs/sprints/sprint-01.md`.
+- **Sprint 2** (20 octobre → 2 novembre) : **toutes les Issues terminées** (#22 GLPI en Docker, #5 cadrage, #6 taxonomie et conception du tri, #27 inventaire des jeux publics, #8 première synthèse de veille). Revue et rétrospective à faire le 2 novembre dans `docs/sprints/sprint-02.md`.
+- **Sprint 3** (3 → 16 novembre), Issues prêtes : #26 générateur de tickets (Sonnet), #29 récupération et traduction des jeux publics (Sonnet, mesurer la charge du poste sur un échantillon avant tout traitement en masse), #13 essai de Zensical (avant le 5 novembre).
+- **Backlog** : #15 tri automatique de la veille (optionnel), #24 réévaluer GLPI 12, #30 benchmark des modèles de décision (phase 3), #31 exigences AI Act.
+- **Ensuite** : extraction depuis GLPI (API et SQL), base de données Merise / RGPD, API de données.
 
-Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`.
+En attente du développeur :
+- **Premier démarrage de GLPI** ensemble (mots de passe par défaut à changer, mesure de la RAM ; la VM Docker est limitée à ~3,8 Go, à augmenter plus tard pour la stack complète).
+- Mettre à jour Ollama (`winget upgrade Ollama.Ollama`, cible ≥ 0.40.7) et FreshRSS (`pull` puis `up -d`).
+- Décider : retirer la source FreshRSS 1.30.2 de la synthèse du 2026-10-21 (proposé, peu pertinente pour le projet) ; réduire #31 à la seule mention « généré par IA » dans l'interface, le reste devenant un point de vigilance dans le cadrage (proposé).
+
+Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`, `optionnel` (bonus abandonnable sans impact sur le référentiel).
+
+## Aide-mémoire technique
+
+- **Poste Windows** : `python` n'est pas dans le PATH, toujours passer par `uv run` ; les avertissements Git LF/CRLF sont sans conséquence ; les chemins trop longs du dossier temporaire peuvent bloquer une suppression.
+- **GitHub Project** (pour `gh project item-edit`) : projet `PVT_kwHOAJG3HM4Bl-Zb` ; champ Status `PVTSSF_lAHOAJG3HM4Bl-ZbzhkpKRg` (Backlog `df7afd10`, À faire `85453a66`, En cours `b9e5c00b`, En revue `256d054b`, Terminé `ddb9dee6`) ; champ Sprint `PVTIF_lAHOAJG3HM4Bl-ZbzhkpKWE` (Sprint 1 `8a375d0e`, Sprint 2 `0ec3ef90`, Sprint 3 `be9d1486`) ; champ Estimation `PVTF_lAHOAJG3HM4Bl-ZbzhkpKWA`. Les workflows du Project passent les Issues fermées en « Terminé », mais vérifier.
+- **Après fusion d'une PR d'agent** : `git switch main && git pull`, puis `git worktree remove .claude/worktrees/<agent>` et suppression des branches locales. Attendre la fin de la CI avant `gh pr merge` (sinon « Base branch was modified »).
+- **Relecture d'une PR d'agent** : vérifier soi-même les affirmations importantes (licences, versions, reproduction d'un bug) avant de les reprendre ; poster le contrôle référentiel en commentaire ; mettre à jour JOURNAL et mémo oral après fusion.
+- **Mesures sur le poste** : surveiller CPU et RAM pendant tout traitement lourd (Ollama, traduction, Spark) et arrêter si la RAM libre passe sous ~1 Go.
