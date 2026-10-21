@@ -44,3 +44,4 @@ nav:
   - Intégration continue: ci.md
   - Décisions:
       - Outil de ticketing: decisions/outil-ticketing.md
+      - Générateur de documentation (Zensical): decisions/documentation-zensical.md
