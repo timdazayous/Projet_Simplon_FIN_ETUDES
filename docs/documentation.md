@@ -7,7 +7,7 @@ La documentation destinée au jury est écrite en Markdown dans le dossier `docs
 ## Outils
 
 - **MkDocs** : générateur de site statique qui transforme les fichiers Markdown en pages HTML. **Alternative écartée** : Sphinx, plus lourd à configurer pour un besoin de pages de texte.
-- **Thème Material for MkDocs** : thème qui déclare la langue de la page, offre une navigation au clavier et un contraste soigné. Il est en mode maintenance depuis novembre 2025 (corrections critiques et de sécurité), ses auteurs développant son successeur Zensical, qui lit le même fichier `mkdocs.yml`. **Alternative écartée** : Zensical, encore en développement précoce (statut « alpha » sur PyPI) ; une migration reste possible plus tard.
+- **Thème Material for MkDocs** : thème qui déclare la langue de la page, offre une navigation au clavier et un contraste soigné. Il est en mode maintenance depuis novembre 2025 (corrections critiques et de sécurité), ses auteurs développant son successeur Zensical, qui lit le même fichier `mkdocs.yml`. **Alternative écartée** : Zensical, encore en développement précoce (statut « alpha » sur PyPI) ; une migration reste possible ; l'essai du 2026-10-21 est détaillé dans [Générateur de documentation : Material ou Zensical](decisions/documentation-zensical.md).
 - **uv** : installe les dépendances de la documentation, regroupées dans le groupe `docs` de `pyproject.toml` et verrouillées dans `uv.lock`.
 
 La configuration du site est dans le fichier `mkdocs.yml` à la racine du dépôt.
