@@ -1,0 +1,125 @@
+# Paramètres du générateur de tickets et d'alertes synthétiques (Issue #26).
+# Documentation : docs/generateur.md. Les valeurs ci-dessous sont les proportions par défaut
+# validées par le développeur le 2026-10-20. Les nombres sont des POIDS RELATIFS : ils n'ont pas
+# besoin de sommer à 1. Les étiquettes (catégories, types, priorités, canaux) doivent exister
+# dans config/taxonomy.yaml, qui reste la référence unique : le générateur refuse toute étiquette
+# inconnue.
+
+seed: 42  # même graine + même configuration = mêmes fichiers, octet pour octet
+
+output:
+  directory: data/raw  # dossier ignoré par Git
+  tickets_file: synthetic_tickets.jsonl
+  alerts_file: synthetic_alerts.jsonl
+
+volumes:
+  free_text: 2400  # ~40 % du texte libre d'entraînement (6 000 messages, voir jeux-publics.md)
+  alerts: 1500     # alertes de supervision pour tester les règles
+
+clients:
+  count: 60            # une soixantaine de PME fictives
+  users_per_client: 6
+
+start_date: "2026-01-05"  # début de la période simulée (dates de création)
+period_days: 120
+
+# ----------------------------------------------------------------------------- texte libre
+free_text:
+  # Canaux non supervision. Avec les alertes (supervision 55 % = connecteur 40 + mail 15),
+  # les poids de l'Issue sont : support 25, portail 10, administratif 5, interne 5.
+  channels:
+    support_email: 25
+    client_portal: 10
+    admin_email: 5
+    internal: 5
+
+  # Catégories « naturelles » d'un canal. Un canal absent de cette liste est un canal général :
+  # il reçoit toutes les catégories qui ne sont rattachées à aucun canal.
+  channel_affinity:
+    admin_email: [admin_billing, procurement]
+
+  # Poids des catégories, à l'intérieur du groupe naturel du canal tiré.
+  categories:
+    network: 10
+    messaging: 12
+    workstation: 12
+    software: 10
+    accounts: 12
+    printing: 7
+    infrastructure: 8
+    backup: 6
+    security: 8
+    telephony: 7
+    procurement: 5
+    admin_billing: 5
+
+  types:  # 55 / 30 / 15
+    incident: 55
+    service_request: 30
+    information: 15
+
+  # Priorité cible sur l'ensemble du texte libre : P1 5 %, P2 20 %, P3 45 %, P4 30 %.
+  # Elle est atteinte via une répartition par type (un type « information » ou « demande » n'est
+  # presque jamais critique ; la règle de routage fait de P1 + incident un cas particulier).
+  # Le générateur vérifie que cette matrice reproduit la cible à ±2 points.
+  priority_target:
+    P1: 5
+    P2: 20
+    P3: 45
+    P4: 30
+  priority_by_type:
+    incident:        {P1: 9.1, P2: 33, P3: 42, P4: 15.9}
+    service_request: {P2: 5, P3: 50, P4: 45}
+    information:     {P3: 50, P4: 50}
+
+  wrong_channel_rate: 0.10  # part du texte libre arrivée sur un canal « inattendu »
+
+  linked_ticket:
+    rate: 0.15              # part des messages clients (hors canal interne) liés à un ticket
+    escalated_share: 0.33   # dont un tiers est plus urgent que le ticket (revue de priorité)
+
+  # Faux secrets collés dans le message (pour tester la détection et le masquage à l'import).
+  secret_rate: 0.05
+  secret_categories: [accounts, software, messaging, network]
+
+  subject_urgent_prefix_rate: 0.30  # préfixe « URGENT » sur les messages P1 / P2
+  forwarded_rate: 0.05              # sujet précédé de « TR : » (message transféré)
+  contact_line_rate: 0.35           # ligne avec numéro de téléphone ou adresse mail
+
+# ----------------------------------------------------------------------------- alertes
+alerts:
+  sources:  # connecteur 40 / mail dédié 15
+    monitoring_connector: 40
+    monitoring_email: 15
+  tools:
+    zabbix: 60
+    centreon: 40
+  # Catégorie de la ressource en cause. Les 5 premières ont des mots-clés dans la taxonomie ;
+  # les 4 dernières produisent des alertes SANS règle correspondante (~10 %), traitées par le
+  # modèle en dernier recours.
+  categories:
+    infrastructure: 33
+    network: 27
+    backup: 14
+    security: 9
+    printing: 4
+    messaging: 4
+    accounts: 3
+    software: 3
+    workstation: 3
+  # Gravités d'origine, harmonisées ensuite par taxonomy.yaml (monitoring_severity).
+  zabbix_severity:
+    Disaster: 5
+    High: 15
+    Average: 30
+    Warning: 30
+    Information: 15
+    Not classified: 5
+  centreon_service_state:
+    CRITICAL: 35
+    WARNING: 45
+    UNKNOWN: 20
+  centreon_host_state_rate: 0.10  # part des alertes Centreon qui concernent un hôte entier
+  centreon_host_state:
+    DOWN: 70
+    UNREACHABLE: 30
