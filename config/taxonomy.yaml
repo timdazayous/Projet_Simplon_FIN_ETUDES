@@ -83,5 +83,5 @@ monitoring_check_category:
   infrastructure: [disk, cpu, memory, service, uptime, vm, datastore]
   network: [interface, wan, vpn, ping, latency, switch, firewall, wifi]
   backup: [backup, sauvegarde, replication]
-  security: [antivirus, edr, malware, ransomware]
+  security: [antivirus, edr, malware, ransomware, failed logon]
   printing: [printer, toner]

@@ -723,6 +723,8 @@ ALERT_CHECKS: dict[str, list[tuple[str, str]]] = {
         ("EDR agent is disconnected", "Last seen: {n} hours ago"),
         ("Malware detected on endpoint", "Threat quarantined: Trojan.Generic.{n}"),
         ("Ransomware behaviour detected", "Process blocked, {n} files touched"),
+        # Brute force suspected: security by default (decision of 2026-10-21).
+        ("Too many failed logons", "Failed logons in 10 minutes: {n}0"),
     ],
     "printing": [
         ("Printer is offline", "No SNMP response for {n} minutes"),
@@ -735,7 +737,8 @@ ALERT_CHECKS: dict[str, list[tuple[str, str]]] = {
         ("Certificate expires in less than 14 days (OWA)", "Days left: {n}"),
     ],
     "accounts": [
-        ("Too many failed logons", "Failed logons in 10 minutes: {n}0"),
+        # A single account locked out (low volume): an account issue, not an attack.
+        ("Domain account locked out", "Locked accounts in the last hour: 1 ({n} failed attempts)"),
     ],
     "software": [
         ("Licence usage above 95%", "Licences used: {pct}%"),

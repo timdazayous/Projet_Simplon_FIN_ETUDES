@@ -94,6 +94,8 @@ def test_monitoring_priority(taxonomy, tool, severity, priority):
         ("VPN tunnel is down", "network"),
         ("Backup job failed", "backup"),
         ("Antivirus definitions are out of date", "security"),
+        ("Too many failed logons", "security"),
+        ("Domain account locked out", None),
         ("Toner level is low", "printing"),
         ("Mail queue length is too high", None),
     ],
