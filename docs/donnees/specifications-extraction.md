@@ -31,7 +31,7 @@ Le référentiel exige une extraction depuis **cinq types de sources** : un fich
 | Élément | Choix | Raison | Alternative écartée |
 |---|---|---|---|
 | Langage | Python 3.12, dépendances gérées par uv et verrouillées dans `uv.lock` | Même environnement que le reste du projet ; installation reproductible | — |
-| Appels HTTP | `httpx2` | Délais d'attente explicites ; déjà installé, car le SDK du client LLM en dépend (à confirmer à l'implémentation) | `requests`, équivalent, mais une dépendance de plus |
+| Appels HTTP | `httpx2` | Délais d'attente explicites ; déjà installé, car le SDK du client LLM en dépend | `requests`, équivalent, mais une dépendance de plus |
 | Configuration | Fichiers YAML dans `config/`, secrets dans `.env` | Aucun paramètre ni secret dans le code | Valeurs en dur |
 | Format brut | JSON Lines (une ligne par élément) puis Parquet pour le jeu agrégé | JSON Lines est lisible et facile à reprendre ; Parquet est compact, typé et lu nativement par Spark | CSV, sans typage et fragile avec du texte libre |
 | Stockage | `data/raw/` (ignoré par Git) | Aucune donnée dans le dépôt public | — |
@@ -60,6 +60,8 @@ Réalisée dans #29. Le détail figure dans [Récupération et traduction des je
 | Fréquence | Ponctuelle : les jeux ne changent pas |
 
 ## Source 2 : API REST (endoflife.date)
+
+Réalisée dans #41. Le détail figure dans [Extraction des dates de fin de support](endoflife.md).
 
 | Point | Spécification |
 |---|---|

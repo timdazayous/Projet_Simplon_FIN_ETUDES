@@ -942,6 +942,7 @@ name = "projet-simplon-fin-etudes"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "httpx2" },
     { name = "openai" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
@@ -974,6 +975,7 @@ translate = [
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx2", specifier = ">=2.13" },
     { name = "openai", specifier = ">=3.28.0" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
     { name = "pyyaml", specifier = ">=6.0.3" },
