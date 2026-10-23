@@ -9,6 +9,8 @@ L'outil de ticketing simule le système d'information du MSP commanditaire. Il f
 - **API REST** : récupération des tickets courants (C1) ;
 - **base de données** : requêtes SQL directes sur l'historique (C1, C2).
 
+*Mise à jour du 23 octobre 2026* : la source « API REST » du projet est désormais l'API publique endoflife.date ; l'API de GLPI reste utilisée pour l'injection des tickets générés et la lecture des tickets courants (voir [Spécifications de l'extraction](../donnees/specifications-extraction.md)).
+
 Il doit donc offrir une API documentée, un schéma de base lisible, et tourner en local avec le reste de la stack (PostgreSQL, Spark, Prometheus, Grafana…), sur CPU et sans budget.
 
 ## Les deux candidats

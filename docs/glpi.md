@@ -4,10 +4,10 @@ Cette page décrit comment déployer GLPI 11 en local avec Docker, et ce qu'il f
 
 ## Rôle de GLPI dans le projet
 
-GLPI simule le système d'information du MSP commanditaire : c'est là que les tickets sont créés et suivis. Il fournit **deux des cinq sources de données** :
+GLPI simule le système d'information du MSP commanditaire : c'est là que les tickets sont créés et suivis. Il intervient de deux façons :
 
-- l'**API REST** (API v2, authentification OAuth2), pour les tickets courants ;
-- l'**accès SQL direct** à sa base MariaDB, pour l'historique.
+- l'**accès SQL direct** à sa base MariaDB est la source de type **base de données** du projet ;
+- l'**API REST** (API v2, authentification OAuth2) sert à injecter les tickets générés et à lire les tickets courants. Depuis le 23 octobre 2026, elle n'est plus comptée comme la source « API REST » : ce rôle revient à l'API publique endoflife.date, pour que deux types d'extraction ne reposent pas sur le même outil (voir [Spécifications de l'extraction](donnees/specifications-extraction.md)).
 
 L'application du projet ne remplace pas GLPI : elle lit ses tickets, les classe et propose de relever la priorité d'un ticket ouvert quand un message du client le justifie. Le technicien décide toujours.
 
