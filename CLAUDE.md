@@ -147,8 +147,7 @@ En attente du développeur :
 - Décidé le 2026-10-21 : source FreshRSS 1.30.2 conservée ; #31 réduite à la mention « généré par IA » (1 point), formation et chaîne de valeur en point de vigilance dans `docs/cadrage.md` ; migration vers Zensical après le 5 novembre (#35, repli Material épinglé), #13 fermée.
 - Sprint 3 avancé le 2026-10-21 (quota) : #13 terminée (PR #33), #26 terminée (PR #34, générateur `src/data/`). Restent #29 (avec le développeur, charge CPU) et #35 (après le 5 novembre).
 - #36 (site sans Google Fonts, RGPD, ajoutée au sprint 2) : terminée (PR #37).
-- #29 lancée le 2026-10-21 en agent Sonnet, phase 1 sur échantillon de 50 tickets (mesure de charge) ; PR attendue avec `Refs #29`, traduction complète à décider ensuite (local ou Kaggle/Colab).
-- Le dossier `.claude/worktrees/agent-aa30d55e0f81df5c4` n'a pas pu être supprimé (fichier verrouillé par Windows) : le supprimer à la main plus tard.
+- #29 : phase 1 fusionnée (PR #38, mesure : ~1 s/ticket, ~1 h 20 pour 4 873 tickets). Décisions du 2026-10-23 (commentaire de #29, JOURNAL) : traduction complète en local de nuit, faisceau 4, glossaire ; correspondance des étiquettes revue. Phase 2 lancée en agent Sonnet (règles, plafond `security`, glossaire, répartition recalculée, commande de nuit). Ensuite : le développeur lance la traduction de nuit, puis relit les 50 tickets de référence. Les chiffres « Corpus » ci-dessus seront mis à jour avec la répartition recalculée.
 
 Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`, `optionnel` (bonus abandonnable sans impact sur le référentiel).
 
@@ -156,6 +155,6 @@ Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à
 
 - **Poste Windows** : `python` n'est pas dans le PATH, toujours passer par `uv run` ; les avertissements Git LF/CRLF sont sans conséquence ; les chemins trop longs du dossier temporaire peuvent bloquer une suppression.
 - **GitHub Project** (pour `gh project item-edit`) : projet `PVT_kwHOAJG3HM4Bl-Zb` ; champ Status `PVTSSF_lAHOAJG3HM4Bl-ZbzhkpKRg` (Backlog `df7afd10`, À faire `85453a66`, En cours `b9e5c00b`, En revue `256d054b`, Terminé `ddb9dee6`) ; champ Sprint `PVTIF_lAHOAJG3HM4Bl-ZbzhkpKWE` (Sprint 1 `8a375d0e`, Sprint 2 `0ec3ef90`, Sprint 3 `be9d1486`) ; champ Estimation `PVTF_lAHOAJG3HM4Bl-ZbzhkpKWA`. Les workflows du Project passent les Issues fermées en « Terminé », mais vérifier.
-- **Après fusion d'une PR d'agent** : `git switch main && git pull`, puis `git worktree remove .claude/worktrees/<agent>` et suppression des branches locales. Attendre la fin de la CI avant `gh pr merge` (sinon « Base branch was modified »).
+- **Après fusion d'une PR d'agent** : `git switch main && git pull`, puis `git worktree remove .claude/worktrees/<agent>` et suppression des branches locales. Si « Filename too long » : `cmd /c 'rd /s /q "\?\<chemin absolu>"'` puis `git worktree prune`. Attendre la fin de la CI avant `gh pr merge` (sinon « Base branch was modified »).
 - **Relecture d'une PR d'agent** : vérifier soi-même les affirmations importantes (licences, versions, reproduction d'un bug) avant de les reprendre ; poster le contrôle référentiel en commentaire ; mettre à jour JOURNAL et mémo oral après fusion.
 - **Mesures sur le poste** : surveiller CPU et RAM pendant tout traitement lourd (Ollama, traduction, Spark) et arrêter si la RAM libre passe sous ~1 Go.
