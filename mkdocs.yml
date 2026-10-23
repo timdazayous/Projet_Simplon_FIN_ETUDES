@@ -44,6 +44,7 @@ nav:
       - GLPI (installation et accès): glpi.md
       - Jeux de données publics: donnees/jeux-publics.md
       - Récupération et traduction des jeux publics: donnees/recuperation-traduction.md
+      - Spécifications de l'extraction: donnees/specifications-extraction.md
       - Générateur de tickets synthétiques: generateur.md
   - Documentation: documentation.md
   - Intégration continue: ci.md
