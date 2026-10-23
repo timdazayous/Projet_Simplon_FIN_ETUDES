@@ -191,6 +191,8 @@ Les tickets des jeux de test ne doivent **jamais** figurer dans l'entraînement 
 
 ## Points incertains
 
+**Mise à jour du 21 octobre 2026 (Issue #29)** : les jeux ont été ouverts et une partie de ces points est levée, voir [Récupération et traduction des jeux publics](recuperation-traduction.md). En particulier : il n'existe pas de modèle OPUS-MT portugais vers français dédié (un modèle multilingue est utilisé), le temps de traduction a été mesuré (environ 1 h 20 à 1 h 45 pour 4 873 tickets, au lieu de « quelques heures »), et 1 602 tickets de Tobi-Bueck déclarés allemands sont en réalité en anglais. La liste ci-dessous reste celle du 20 octobre.
+
 - Valeurs exactes des files, types et priorités de la **dernière version** de Tobi-Bueck (la carte et la vue Hugging Face diffèrent).
 - Présence éventuelle de français dans ce jeu (non vérifiée).
 - Licence et contenu des jeux Kaggle (pages illisibles).

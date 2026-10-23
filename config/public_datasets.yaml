@@ -1,0 +1,79 @@
+# Jeux publics à récupérer (Issue #29). Inventaire et licences : docs/donnees/jeux-publics.md.
+# Procédure complète : docs/donnees/recuperation-traduction.md.
+# La licence est VÉRIFIÉE sur la carte Hugging Face avant tout téléchargement :
+# si elle diffère de `expected_license`, le script refuse de continuer.
+
+seed: 42
+output_directory: data/raw/public # dossier ignoré par Git
+cache_directory: data/raw/public/_hf_cache
+
+datasets:
+  customer_support:
+    repo_id: Tobi-Bueck/customer-support-tickets
+    expected_license: cc-by-nc-4.0
+    role: train # entraînement
+    id_prefix: PUB-CS
+    format: tobi_csv
+    # Nouvelle version du jeu (plus de tickets, anglais et allemand seulement). L'ancienne version
+    # (dataset-tickets-multi-lang-4-20k.csv) en est un sous-ensemble en grande partie redondant.
+    files: [aa_dataset-tickets-multi-lang-5-2-50-version.csv]
+    # Seules les files informatiques nous concernent (les autres sont du service client général).
+    queues: [Technical Support, IT Support, Service Outages and Maintenance]
+    languages: [en, de]
+    language_source: column # colonne `language` du jeu
+    max_records: 3600 # tirage reproductible (graine ci-dessus)
+    min_chars: 20
+    max_chars: 4000
+    attribution: >-
+      Tobias Bueck, « Customer Support Tickets », Hugging Face, CC BY-NC 4.0.
+      Textes traduits en français et ré-étiquetés (modifications) ; usage non commercial uniquement.
+
+  it_support:
+    repo_id: tasksource/it-support-tickets
+    expected_license: cc-by-4.0
+    role: test # test externe (jamais dans l'entraînement)
+    id_prefix: PUB-ITS
+    format: tasksource_parquet
+    files: [data/test-00000-of-00001.parquet] # découpage « test » de l'auteur (657 tickets)
+    label_names:
+      [Active Directory, Computer-Services, EOL, Fileservice, O365, Software, Support general]
+    languages: [en, de, es, pt]
+    language_source: detect # pas de colonne de langue : détection par mots courants
+    # Bruit de l'outil de ticketing, identique sur presque tous les tickets : retiré du texte.
+    strip_prefixes:
+      - '^\[TICKET ID\]\s*-\s*(New Support Ticket received|A Support Ticket was forwarded to[^-]*|This Support Ticket was reopened)\s*-\s*'
+    max_records: null
+    min_chars: 10
+    max_chars: 4000
+    attribution: >-
+      Leonardo Santiago Benitez Pereira, « Classification of IT Support Tickets », Zenodo, 2022,
+      DOI 10.5281/zenodo.7648117 (copie Hugging Face : tasksource), CC BY 4.0. Textes traduits en
+      français, préfixes de l'outil retirés et ré-étiquetés (modifications).
+
+  support_urgency:
+    repo_id: decisionmodelhub/support-urgency
+    expected_license: cc-by-4.0
+    role: complement # revue de priorité (urgent ou non)
+    id_prefix: PUB-URG
+    format: urgency_jsonl
+    files: [cases_development.jsonl, cases_test.jsonl]
+    languages: [en]
+    language_source: column
+    max_records: null
+    min_chars: 10
+    max_chars: 4000
+    attribution: >-
+      decisionmodelhub, « Support Urgency v1 », Hugging Face, CC BY 4.0. Textes traduits en
+      français (modification).
+
+# Modèles de traduction OPUS-MT (licence vérifiée sur la fiche de chaque modèle : Apache-2.0).
+translation_models:
+  en: {repo_id: Helsinki-NLP/opus-mt-en-fr, license: apache-2.0, prefix: ""}
+  de: {repo_id: Helsinki-NLP/opus-mt-de-fr, license: apache-2.0, prefix: ""}
+  es: {repo_id: Helsinki-NLP/opus-mt-es-fr, license: apache-2.0, prefix: ""}
+  # Pas de modèle pt→fr dédié : modèle multilingue vers allemand, anglais, français, portugais,
+  # espagnol, avec le jeton de langue cible « >>fra<< » devant la phrase.
+  pt:
+    repo_id: Helsinki-NLP/opus-mt-tc-bible-big-mul-deu_eng_fra_por_spa
+    license: apache-2.0
+    prefix: ">>fra<< "
