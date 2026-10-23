@@ -1,0 +1,23 @@
+[
+  {
+    "json_url": "/avis/CERTFR-2026-AVI-1367/json/",
+    "last_revision_date": "2026-10-22T00:00:00.000000",
+    "reference": "CERTFR-2026-AVI-1367",
+    "scada": false,
+    "title": "Multiples vulnérabilités dans Node"
+  },
+  {
+    "json_url": "/avis/CERTFR-2026-AVI-1366/json/",
+    "last_revision_date": "2026-10-22T00:00:00.000000",
+    "reference": "CERTFR-2026-AVI-1366",
+    "scada": false,
+    "title": "Multiples vulnérabilités dans les produits Splunk"
+  },
+  {
+    "json_url": "/avis/CERTFR-2025-AVI-0251/json/",
+    "last_revision_date": "2025-03-28T00:00:00.000000",
+    "reference": "CERTFR-2025-AVI-0251",
+    "scada": false,
+    "title": "Vulnérabilité dans Mozilla Firefox"
+  }
+]
