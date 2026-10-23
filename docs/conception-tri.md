@@ -87,6 +87,8 @@ Le but est de **réduire le traitement manuel au maximum**. Les techniciens ne v
 
 **Exemple de revue de priorité** : la panne d'un serveur secondaire est habituellement traitée en deux ou trois jours. Si le client écrit qu'il en a besoin au plus vite pour une raison urgente, le système le détecte et propose de relever la priorité. Un humain décide.
 
+Cette détection est confiée au **service LLM** (voir [Service LLM](service-llm.md)) : il compare le message au ticket ouvert, repère l'urgence, l'échéance et l'impact métier, et renvoie une proposition structurée avec sa justification. Le classifieur, lui, ne voit qu'un texte isolé et ne sait pas raisonner sur des dates relatives.
+
 **Ce qui n'est jamais automatique** : aucune action n'est exécutée sur les systèmes des clients, aucune réponse n'est envoyée au client, et aucune priorité n'est relevée sans confirmation humaine.
 
 ### Le seuil de confiance

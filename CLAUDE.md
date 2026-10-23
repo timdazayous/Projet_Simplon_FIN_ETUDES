@@ -12,7 +12,7 @@ Projet de fin de formation **Développeur en intelligence artificielle (Simplon)
 
 **Solution** : pour chaque ticket entrant, l'application
 1. le **classe** (catégorie, urgence, équipe) via un modèle entraîné dans le projet ;
-2. **suggère une piste de résolution** via un LLM, à partir des tickets résolus et de la documentation ;
+2. **réévalue la priorité** des tickets ouverts via un LLM, quand un message du client signale une urgence, une échéance ou un impact métier (proposition soumise à la revue de priorité) ;
 3. **apprend de ce que font déjà les techniciens** (exceptions traitées, revues de priorité, corrections après coup → ré-entraînement).
 
 **Principe** : aucune action sur les systèmes des clients (pas de remédiation automatique, pas de réponse automatique au client). Les tickets sont créés et classés automatiquement quand la confiance est suffisante ; les cas incertains (file d'exceptions) et les hausses de priorité (revue de priorité) sont toujours soumis à un humain. Règles pour les alertes de supervision structurées, modèle pour le texte libre : voir `docs/conception-tri.md`.
@@ -46,7 +46,7 @@ Chaque brique existe parce qu'une compétence l'exige. Ne pas simplifier une bri
 
 **Deux briques IA distinctes, ne pas les fusionner :**
 - **Classifieur entraîné dans le projet** (E3) : baseline TF-IDF + régression logistique (scikit-learn), puis CamemBERT distillé si le gain est démontré. Ré-entraîné par la CI. Jamais remplacé par un service externe.
-- **Service LLM existant** (E2) pour résumé et suggestion : **Groq** (free tier) en principal, **Ollama** local en secours. Une seule abstraction compatible OpenAI, fournisseur choisi par `LLM_PROVIDER=groq|ollama`. Erreurs 429 gérées (retry/backoff, repli Ollama).
+- **Service LLM existant** (E2) pour la **réévaluation de la priorité** (message client lié à un ticket ouvert → escalade proposée, échéance, justification, en JSON ; soumise à la revue de priorité) et, en option, un **résumé IA** affiché dans l'interface. Suggestion de résolution écartée (piste d'évolution), décision du 2026-10-23 : **Groq** (free tier) en principal, **Ollama** local en secours. Une seule abstraction compatible OpenAI, fournisseur choisi par `LLM_PROVIDER=groq|ollama`. Erreurs 429 gérées (retry/backoff, repli Ollama).
 
 **Modèles de décision (« Jev-like »)** (Jev de TypeSafe AI, Clef de Cloudflare, pplx-decider de Perplexity, Kev en open source ; pris en charge par Ollama depuis septembre 2026, voir la veille du 2026-10-21 et #30) : classifieurs peu verbeux, bon marché sur gros volume, qui renvoient des scores de confiance. Uniquement **comparateurs dans le benchmark** et sujet de veille, jamais en remplacement du classifieur maison.
 

@@ -1,6 +1,6 @@
 # Note de cadrage
 
-**Statut** : validée par le développeur le 20 octobre 2026 · **Issue** : #5 · **Compétences** : C1 (présentation du projet), C14 (analyse du besoin)
+**Statut** : validée par le développeur le 20 octobre 2026, rôle du LLM modifié le 23 octobre 2026 (réévaluation de la priorité au lieu de la suggestion de résolution) · **Issue** : #5 · **Compétences** : C1 (présentation du projet), C14 (analyse du besoin)
 
 Cette note présente le projet, son commanditaire, ses objectifs, son périmètre, ses contraintes, son budget et son organisation. Elle sert de référence pour les spécifications et pour les rapports de certification.
 
@@ -38,7 +38,7 @@ Tous les tickets et toutes les alertes arrivent dans **une file unique**. Un tec
 | Acteur | Rôle dans le projet | Attentes |
 |---|---|---|
 | Direction du MSP | Commanditaire | Gagner du temps de tri, réduire les erreurs de routage, sans coût supplémentaire |
-| Techniciens N1 et N2 | Utilisateurs principaux | Des tickets créés et routés automatiquement quand c'est sûr, des exceptions déjà pré-analysées, une piste de résolution |
+| Techniciens N1 et N2 | Utilisateurs principaux | Des tickets créés et routés automatiquement quand c'est sûr, des exceptions déjà pré-analysées, les urgences signalées par les clients repérées sans relire chaque message |
 | Responsable du service desk | Utilisateur et pilote | Suivre la qualité du tri et l'évolution du modèle |
 | Clients finaux (salariés des PME) | Émetteurs des tickets, bénéficiaires indirects | Être pris en charge plus vite par la bonne équipe |
 | Délégué à la protection des données (DPO) | Garant du RGPD | Données personnelles minimisées, pseudonymisées, jamais envoyées en clair à un service externe |
@@ -51,7 +51,7 @@ Tous les tickets et toutes les alertes arrivent dans **une file unique**. Un tec
 Pour chaque ticket ou alerte entrant, l'application doit :
 
 1. **classer** : catégorie, type, priorité et équipe destinataire, avec un indice de confiance ;
-2. **suggérer une piste de résolution**, en s'appuyant sur les tickets déjà résolus et sur la documentation technique ;
+2. **réévaluer la priorité** d'un ticket ouvert quand un message du client signale une urgence, une échéance ou un impact métier, et la proposer en revue de priorité ; en option, **résumer** le ticket pour le technicien ;
 3. **créer automatiquement le ticket** quand la confiance est suffisante, et **soumettre à un humain** les cas incertains (file d'exceptions) et les hausses de priorité (revue de priorité) ;
 4. **apprendre de ce que font déjà les techniciens** : exceptions traitées, décisions de revue de priorité et corrections faites après coup alimentent le ré-entraînement.
 
@@ -60,7 +60,7 @@ Pour chaque ticket ou alerte entrant, l'application doit :
 ### Objectifs techniques
 
 - Un **classifieur entraîné dans le projet**, léger et ré-entraînable sur CPU, plutôt qu'un service externe pour le classement.
-- Un **service LLM existant** (Groq, avec Ollama en secours) pour les suggestions de résolution, derrière une interface unique.
+- Un **service LLM existant** (Groq, avec Ollama en secours) pour la réévaluation de la priorité (et le résumé en option), derrière une interface unique.
 - Une **chaîne de données** reproductible : extraction depuis cinq types de sources, nettoyage, base de données conforme au RGPD, API d'accès.
 - Une **chaîne MLOps** : tests des données et du modèle, ré-entraînement et évaluation automatiques, livraison par Pull Request avec rapport, monitoring et alertes.
 - Une **application web accessible** (RGAA / WCAG) et sécurisée (OWASP).
@@ -75,14 +75,15 @@ Les valeurs cibles sont **provisoires** : elles seront confirmées une fois la p
 | Qualité du routage | Part des tickets dont l'équipe proposée est la bonne | ≥ 85 % |
 | Taux d'automatisation | Part des tickets et alertes traités sans intervention humaine (ticket créé automatiquement et non corrigé ensuite) | ≥ 70 % |
 | Corrections | Part des tickets créés automatiquement puis corrigés par un technicien, suivie dans le temps | en baisse après chaque ré-entraînement |
-| Disponibilité de la suggestion | Part des demandes de suggestion qui aboutissent (Groq ou secours) | ≥ 99 % |
+| Détection des hausses d'urgence | Rappel et précision du LLM sur des messages dont l'urgence est connue (jeu public `support-urgency`, messages liés générés) | à fixer après le benchmark |
+| Disponibilité du service LLM | Part des demandes qui aboutissent (Groq ou secours) | ≥ 99 % |
 
 ## Périmètre
 
 | Dans le périmètre | Hors périmètre |
 |---|---|
 | Classement des tickets et alertes (catégorie, type, priorité, équipe) et création automatique des tickets sûrs | Exécution automatique d'actions correctives sur les systèmes des clients |
-| Suggestion de piste de résolution | Réponse automatique envoyée au client |
+| Réévaluation de la priorité par un LLM, proposée en revue | Réponse automatique envoyée au client ; suggestion de piste de résolution (piste d'évolution) |
 | File d'exceptions et revue de priorité, traitées par les techniciens | Intégration à un outil de ticketing réel en production (le projet utilise GLPI en local pour simuler le SI) |
 | Ré-entraînement à partir des corrections | Données réelles de clients : tous les tickets sont synthétiques ou issus de jeux de données publics |
 | Monitoring du modèle et de l'application | Application mobile |
@@ -129,7 +130,7 @@ Si le commanditaire déployait l'outil pour de bon, les postes de coût seraient
 | Poste | Hypothèse de volume | Remarque |
 |---|---|---|
 | Hébergement (API, application, base, monitoring) | Un petit serveur virtuel | Ordre de grandeur : quelques dizaines d'euros par mois |
-| Service LLM payant | 250 à 450 suggestions par jour × environ 400 tokens par appel (mesuré : environ 100 en entrée, 160 à 500 en sortie) = **100 000 à 180 000 tokens par jour** | Facturation au token ; un modèle sans raisonnement réduirait les tokens de sortie |
+| Service LLM payant | Hypothèse haute : 250 à 450 appels par jour (en pratique, seuls les messages liés à un ticket ouvert sont analysés, soit nettement moins) × environ 400 tokens par appel (mesuré : environ 100 en entrée, 160 à 500 en sortie) = **100 000 à 180 000 tokens par jour** | Facturation au token ; un modèle sans raisonnement réduirait les tokens de sortie |
 | Maintenance | Mises à jour, ré-entraînements, suivi du monitoring | Temps humain, à intégrer à l'activité du service |
 
 ## Risques
@@ -138,7 +139,7 @@ Si le commanditaire déployait l'outil pour de bon, les postes de coût seraient
 |---|---|---|
 | Temps disponible réduit par l'activité professionnelle | Retard sur le planning | Sprints courts, tâches découpées, délégation aux agents, planning revu à chaque fin de sprint |
 | Données synthétiques trop homogènes | Modèle qui apprend le style du générateur plutôt que le métier | Jeu de test rédigé différemment (jeux de données publics traduits, tickets reformulés) |
-| Quotas de l'offre gratuite de Groq | Suggestions indisponibles | Gestion des erreurs 429, repli sur Ollama, monitoring des erreurs |
+| Quotas de l'offre gratuite de Groq | Réévaluations de priorité indisponibles | Gestion des erreurs 429, repli sur Ollama, monitoring des erreurs |
 | Ressources limitées du poste (sans GPU, 15 Go de RAM) | Lenteur, impossibilité de tout lancer en même temps | Modèles légers, mesures de charge, services démarrés à la demande |
 | Évolution des outils (fin de support, nouvelles versions) | Incompatibilités | Versions épinglées, veille hebdomadaire, Issues de réévaluation |
 | Exigences de l'AI Act (point de vigilance) | Utilisation de l'outil sans compréhension de ses limites ; obligations mal identifiées | Mention « généré par IA » sur chaque suggestion (article 50, critère d'acceptation de l'interface). En cas de déploiement réel : sensibilisation des techniciens à la lecture des suggestions et des scores de confiance (article 4, maîtrise de l'IA). Le projet intègre un modèle tiers sans le modifier : il se situe en aval de la chaîne de valeur, pas comme fournisseur d'un modèle d'IA à usage général. Éléments issus de la veille, à confirmer, et non un avis juridique |

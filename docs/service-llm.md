@@ -4,7 +4,11 @@ Cette page documente la preuve de concept du service LLM (compétence C8, bloc E
 
 ## Rôle du service
 
-Pour chaque ticket, l'application **suggère une piste de résolution** au technicien grâce à un modèle de langage (LLM) existant. Le technicien décide : l'outil n'agit jamais seul.
+Quand un client écrit au sujet d'un ticket déjà ouvert, l'application demande à un modèle de langage (LLM) existant si ce message justifie de **relever la priorité** : urgence exprimée, échéance (« demain matin », « avant vendredi »), impact sur l'activité. Le LLM répond de façon structurée (escalade oui ou non, priorité proposée, échéance, justification). La proposition part en **revue de priorité** : un humain décide toujours.
+
+En option, le même service produit un **résumé** du ticket en une ou deux lignes, affiché dans l'interface avec la mention « généré par IA ». La suggestion de piste de résolution a été écartée (décision du 23 octobre 2026, voir le JOURNAL) : elle demanderait des tickets résolus avec leur solution et serait difficile à évaluer.
+
+**Pourquoi un LLM et pas le classifieur** : le classifieur range un texte seul. Ici, il faut comparer un message à un ticket existant, comprendre des dates relatives et une conséquence métier : c'est le point fort d'un modèle de langage.
 
 - **Groq** (offre gratuite) est le fournisseur principal.
 - **Ollama**, installé en local, est le fournisseur de secours. Ce repli est **désactivable** : l'usage des ressources de la machine locale reste un choix.

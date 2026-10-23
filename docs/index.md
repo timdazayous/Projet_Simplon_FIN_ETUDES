@@ -11,7 +11,7 @@ Un MSP (prestataire d'infogérance) reçoit des centaines de tickets et d'alerte
 Pour chaque ticket entrant, l'application :
 
 1. **classe** le ticket (catégorie, urgence, équipe) avec un modèle entraîné dans le projet ;
-2. **suggère une piste de résolution** via un LLM, à partir des tickets résolus et de la documentation ;
+2. **réévalue la priorité** des tickets ouverts via un LLM, quand un message du client signale une urgence, une échéance ou un impact métier (proposition soumise à la revue de priorité) ;
 3. **apprend des corrections** des techniciens (boucle de feedback, ré-entraînement).
 
 Aucune action n'est exécutée sur les systèmes des clients : les tickets sont créés et classés automatiquement quand la confiance est suffisante, et les cas incertains sont soumis à un technicien.

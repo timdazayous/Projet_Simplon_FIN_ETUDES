@@ -9,7 +9,7 @@ GLPI simule le système d'information du MSP commanditaire : c'est là que les t
 - l'**API REST** (API v2, authentification OAuth2), pour les tickets courants ;
 - l'**accès SQL direct** à sa base MariaDB, pour l'historique.
 
-L'application du projet ne remplace pas GLPI : elle lit ses tickets, les classe et suggère une piste de résolution. Le technicien décide toujours.
+L'application du projet ne remplace pas GLPI : elle lit ses tickets, les classe et propose de relever la priorité d'un ticket ouvert quand un message du client le justifie. Le technicien décide toujours.
 
 ## Prérequis
 
