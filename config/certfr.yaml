@@ -1,0 +1,18 @@
+# Avis de sécurité du CERT-FR par son API JSON officielle (Issue #42, source 4 de l'extraction).
+# Procédure et contraintes : docs/donnees/certfr.md.
+# Source : CERT-FR (ANSSI), Licence Ouverte Etalab 2.0 : toute réutilisation doit citer la source.
+
+base_url: https://cert.cyber.gouv.fr
+# Le User-Agent identifie le projet et son dépôt, pour que l'éditeur de la source puisse nous joindre.
+user_agent: "projet-simplon-triage-msp/0.1 (projet pedagogique de fin de formation; https://github.com/timdazayous/Projet_Simplon_FIN_ETUDES)"
+# Respect de la source : au plus une requête toutes les 2 secondes (ne pas descendre en dessous).
+min_interval_seconds: 2.0
+timeout_seconds: 60 # la liste complète des avis pèse environ 4 Mo
+# Nouvelles tentatives pour les erreurs passagères (délai, 429, 5xx), avec attente croissante.
+max_retries: 3
+backoff_seconds: 5.0
+# Au bout de ce nombre d'avis consécutifs en échec, on arrête (la source est probablement indisponible).
+max_consecutive_failures: 3
+# Période par défaut : les avis dont la dernière révision date de moins de N mois (option --months pour la changer).
+months: 12
+output_directory: data/raw/certfr # dossier ignoré par Git
