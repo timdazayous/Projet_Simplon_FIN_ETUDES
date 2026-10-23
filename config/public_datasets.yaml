@@ -21,7 +21,14 @@ datasets:
     queues: [Technical Support, IT Support, Service Outages and Maintenance]
     languages: [en, de]
     language_source: column # colonne `language` du jeu
-    max_records: 3600 # tirage reproductible (graine ci-dessus)
+    # Décisions du 2026-10-23 : ne garder que les tickets rattachés à une catégorie de la taxonomie,
+    # et plafonner `security` (le tag « Security » est omniprésent dans ce jeu synthétique).
+    require_category: true
+    # Part maximale de chaque catégorie dans l'ensemble gardé, par sous-échantillonnage à graine
+    # fixe. 8 % = poids de `security` dans config/generator.yaml (8 sur 102, soit 7,8 %).
+    category_shares:
+      security: 0.08
+    max_records: 3600 # plafond global, tirage reproductible (graine ci-dessus)
     min_chars: 20
     max_chars: 4000
     attribution: >-
@@ -39,9 +46,12 @@ datasets:
       [Active Directory, Computer-Services, EOL, Fileservice, O365, Software, Support general]
     languages: [en, de, es, pt]
     language_source: detect # pas de colonne de langue : détection par mots courants
+    # Décision du 2026-10-23 : un ticket sans catégorie est écarté. Les classes « Support general »,
+    # « Fileservice » et « EOL » sont découpées par mots-clés (config/public_label_mapping.yaml).
+    require_category: true
     # Bruit de l'outil de ticketing, identique sur presque tous les tickets : retiré du texte.
     strip_prefixes:
-      - '^\[TICKET ID\]\s*-\s*(New Support Ticket received|A Support Ticket was forwarded to[^-]*|This Support Ticket was reopened)\s*-\s*'
+      - '^\[TICKET ID\]\s*-\s*(New Support Ticket received|A Support Ticket was forwarded to[^-]*|This Support Ticket was reopened|New information received on closed ticket|Reminder of paused Support Ticket)\s*-\s*'
     max_records: null
     min_chars: 10
     max_chars: 4000

@@ -13,6 +13,8 @@ from src.data.public_datasets import (
     DatasetSpec,
     LicenseError,
     PublicConfig,
+    apply_mapping,
+    cap_categories,
     check_license,
     dedup_key,
     detect_language,
@@ -153,7 +155,7 @@ def test_filter_records_counts_every_rejection_reason_once():
         "too_short": 1,
         "too_long": 1,
         "corrupted": 1,
-        "language": 1,
+        "language_unsupported": 1,
     }
     assert not notes
 
@@ -392,3 +394,188 @@ def test_real_configuration_is_consistent():
         assert spec.expected_license in {"cc-by-nc-4.0", "cc-by-4.0"}
         assert set(spec.languages) <= set(config.translation_models)
     assert all(m["license"] == "apache-2.0" for m in config.translation_models.values())
+
+
+def test_public_data_dir_environment_variable_moves_outputs_and_cache(monkeypatch, tmp_path):
+    monkeypatch.setenv("PUBLIC_DATA_DIR", str(tmp_path))
+    config = load_config()
+    assert config.output_directory == tmp_path
+    assert config.cache_directory == tmp_path / "_hf_cache"
+
+
+def test_security_cap_matches_its_weight_in_the_generator():
+    """The cap of the public set is documented as aligned on config/generator.yaml."""
+    import yaml
+
+    generator = yaml.safe_load(
+        (Path(__file__).resolve().parents[1] / "config" / "generator.yaml").read_text("utf-8")
+    )
+    weights = generator["free_text"]["categories"]
+    generator_share = weights["security"] / sum(weights.values())
+    cap = load_config().datasets["customer_support"].category_shares["security"]
+    assert abs(cap - generator_share) < 0.01
+
+
+# ----------------------------------------------------- mapping, exclusions and category cap
+
+
+def labelled(category: str, number: int) -> dict:
+    """A record as produced by apply_mapping, enough for cap_categories."""
+    from src.data.label_mapping import Proposal
+
+    return {"origin_id": f"{category}:{number:04d}", "proposal": Proposal(category=category)}
+
+
+def test_apply_mapping_drops_tickets_without_category_and_counts_the_reason():
+    spec = make_spec(require_category=True)
+    mapping = LabelMapping(
+        rules={
+            "customer_support": {
+                "type": {},
+                "priority": {},
+                "category_rules": [{"name": "net", "category": "network", "tags": ["VPN"]}],
+            }
+        }
+    )
+    records = [
+        {"original_labels": {"tags": ["VPN"]}, "subject": "a", "body": "b", "origin_id": "1"},
+        {"original_labels": {"tags": ["Other"]}, "subject": "c", "body": "d", "origin_id": "2"},
+    ]
+    kept, excluded = apply_mapping(spec, records, mapping)
+    assert [r["origin_id"] for r in kept] == ["1"]
+    assert kept[0]["proposal"].rule == "net"  # the rule applied stays traceable
+    assert dict(excluded) == {"no_category": 1}
+
+
+def test_apply_mapping_keeps_everything_when_a_category_is_not_required():
+    spec = make_spec(require_category=False)
+    records = [{"original_labels": {"tags": []}, "subject": "a", "body": "b", "origin_id": "1"}]
+    kept, excluded = apply_mapping(spec, records, LabelMapping())
+    assert len(kept) == 1
+    assert not excluded
+
+
+def test_apply_mapping_counts_the_exclusion_reason_given_by_the_rules():
+    spec = make_spec(name="it_support", require_category=True)
+    mapping = LabelMapping(
+        rules={
+            "it_support": {
+                "label_rules": {
+                    "Support general": {"rules": [], "default": {"name": "x", "exclude": "vague"}}
+                }
+            }
+        }
+    )
+    records = [
+        {
+            "original_labels": {"label": "Support general"},
+            "subject": "",
+            "body": "?",
+            "origin_id": "1",
+        }
+    ]
+    kept, excluded = apply_mapping(spec, records, mapping)
+    assert kept == []
+    assert dict(excluded) == {"vague": 1}
+
+
+def test_cap_categories_limits_a_category_to_its_share_of_the_result():
+    records = [labelled("security", i) for i in range(500)] + [
+        labelled("network", i) for i in range(920)
+    ]
+    kept, removed = cap_categories(records, {"security": 0.08}, seed=42)
+    security = sum(1 for r in kept if r["proposal"].category == "security")
+    assert security == int(0.08 / 0.92 * 920)  # 80
+    assert security / len(kept) == pytest.approx(0.08, abs=0.001)
+    assert removed["security"] == 500 - security
+    assert sum(1 for r in kept if r["proposal"].category == "network") == 920  # untouched
+
+
+def test_cap_categories_is_reproducible_and_depends_on_the_seed():
+    records = [labelled("security", i) for i in range(300)] + [
+        labelled("network", i) for i in range(300)
+    ]
+    first, _ = cap_categories(records, {"security": 0.1}, seed=42)
+    again, _ = cap_categories(list(reversed(records)), {"security": 0.1}, seed=42)
+    other, _ = cap_categories(records, {"security": 0.1}, seed=43)
+    ids = lambda kept: sorted(r["origin_id"] for r in kept)  # noqa: E731
+    assert ids(first) == ids(again)
+    assert ids(first) != ids(other)
+
+
+def test_cap_categories_changes_nothing_under_the_cap():
+    records = [labelled("security", i) for i in range(5)] + [
+        labelled("network", i) for i in range(100)
+    ]
+    kept, removed = cap_categories(records, {"security": 0.08}, seed=1)
+    assert len(kept) == 105
+    assert not removed
+
+
+def test_cap_categories_rejects_an_impossible_share():
+    with pytest.raises(ValueError, match="Invalid share"):
+        cap_categories([labelled("security", 1)], {"security": 1.5}, seed=1)
+
+
+def test_prepare_dataset_filters_caps_and_reports_every_step(tmp_path):
+    spec = make_spec(
+        require_category=True,
+        category_shares={"security": 0.2},
+        queues=("IT Support",),
+    )
+    rows = []
+    for i in range(30):
+        rows.append({"subject": f"Sec {i}", "body": f"{EN_BODY} security {i}", "tag_1": "Security"})
+    for i in range(40):
+        rows.append({"subject": f"Net {i}", "body": f"{EN_BODY} network {i}", "tag_1": "VPN"})
+    for i in range(5):
+        rows.append({"subject": f"Odd {i}", "body": f"{EN_BODY} unknown {i}", "tag_1": "Other"})
+    source = tmp_path / "data.csv"
+    write_csv(
+        source,
+        [{**r, "queue": "IT Support", "language": "en", "type": "Incident"} for r in rows],
+    )
+    mapping = LabelMapping(
+        rules={
+            "customer_support": {
+                "type": {"Incident": "incident"},
+                "priority": {},
+                "category_rules": [
+                    {"name": "sec", "category": "security", "tags": ["Security"]},
+                    {"name": "net", "category": "network", "tags": ["VPN"]},
+                ],
+            }
+        }
+    )
+    first, report = prepare_dataset(spec, [source], mapping, seed=7)
+    second, _ = prepare_dataset(spec, [source], mapping, seed=7)
+    assert first == second  # reproducible
+    assert report["excluded_by_mapping"] == {"no_category": 5}
+    assert report["categories_before_cap"] == {"security": 30, "network": 40}
+    assert report["capped"] == {"security": 30 - 10}  # 0.2 / 0.8 * 40 = 10
+    categories = [r["proposed_labels"]["category"] for r in first]
+    assert categories.count("security") == 10
+    assert categories.count("network") == 40
+    assert all(r["proposed_labels"]["rule"] in {"sec", "net"} for r in first)
+
+
+def test_filter_records_separates_undecidable_from_unsupported_languages():
+    spec = make_spec(
+        format="tasksource_parquet",
+        language_source="detect",
+        languages=("en", "de"),
+        queues=(),
+        label_names=("Software",),
+        min_chars=3,
+    )
+    rows = [
+        {"text": "xyz qrs", "label": 0, "_row": 1, "_split": "test"},  # nothing recognisable
+        {
+            "text": "El usuario no puede ingresar al equipo y necesita ayuda",
+            "label": 0,
+            "_row": 2,
+            "_split": "test",
+        },
+    ]
+    _, rejected, _ = filter_records(spec, rows)
+    assert dict(rejected) == {"language_undecidable": 1, "language_unsupported": 1}

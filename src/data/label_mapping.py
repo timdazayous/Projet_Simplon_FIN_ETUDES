@@ -6,6 +6,7 @@ validates them. Nothing here replaces the original labels: the proposal is store
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,10 @@ from src.data.taxonomy import Taxonomy, load_taxonomy
 DEFAULT_MAPPING_PATH = Path(__file__).resolve().parents[2] / "config" / "public_label_mapping.yaml"
 
 
+# Masking tags of the datasets ("[SERVER]", "[NAME]") would otherwise match keywords like "server".
+_PLACEHOLDER = re.compile(r"\[[A-Z][A-Z0-9 _]*\]")
+
+
 @dataclass(frozen=True)
 class Proposal:
     """Labels proposed for one ticket. ``None`` means "cannot be mapped"."""
@@ -24,8 +29,9 @@ class Proposal:
     category: str | None = None
     type: str | None = None
     priority: str | None = None
-    rule: str | None = None  # name of the rule that decided the category
+    rule: str | None = None  # name of the rule that decided the category (traceability)
     doubtful: bool = False
+    exclusion: str | None = None  # reason why the ticket is too vague to be kept
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -34,6 +40,7 @@ class Proposal:
             "priority": self.priority,
             "rule": self.rule,
             "doubtful": self.doubtful,
+            "exclusion": self.exclusion,
         }
 
 
@@ -56,7 +63,7 @@ class LabelMapping:
             return Proposal()
         if "category_rules" in spec:
             return self._from_rules(spec, labels, subject)
-        return self._from_label(spec, labels)
+        return self._from_label(spec, labels, subject, body)
 
     @staticmethod
     def _from_rules(spec: dict[str, Any], labels: dict[str, Any], subject: str) -> Proposal:
@@ -80,8 +87,42 @@ class LabelMapping:
         )
 
     @staticmethod
-    def _from_label(spec: dict[str, Any], labels: dict[str, Any]) -> Proposal:
+    def _from_label_rules(label: str, group: dict[str, Any], subject: str, body: str) -> Proposal:
+        """Apply the ordered keyword rules of one original label (``label_rules``).
+
+        A rule matches when one of its regular expressions (``patterns``, case-insensitive) is
+        found in the subject or the body. The ``default`` entry applies when no rule matches:
+        either a category, or ``exclude`` (reason counted in the report) for what stays vague.
+        """
+        text = _PLACEHOLDER.sub(" ", f"{subject}\n{body}")
+        for rule in group.get("rules", []):
+            if any(re.search(p, text, re.IGNORECASE) for p in rule["patterns"]):
+                return Proposal(
+                    category=rule["category"],
+                    type=rule.get("type"),
+                    priority=rule.get("priority"),
+                    rule=f"{label}:{rule['name']}",
+                    doubtful=bool(rule.get("doubtful", False)),
+                )
+        default = group["default"]
+        if default.get("exclude"):
+            return Proposal(rule=f"{label}:{default['name']}", exclusion=default["exclude"])
+        return Proposal(
+            category=default["category"],
+            type=default.get("type"),
+            priority=default.get("priority"),
+            rule=f"{label}:{default['name']}",
+            doubtful=bool(default.get("doubtful", False)),
+        )
+
+    @classmethod
+    def _from_label(
+        cls, spec: dict[str, Any], labels: dict[str, Any], subject: str = "", body: str = ""
+    ) -> Proposal:
         label = labels.get("label")
+        group = spec.get("label_rules", {}).get(label)
+        if group is not None:
+            return cls._from_label_rules(label, group, subject, body)
         category = spec.get("category", {}).get(label)
         return Proposal(
             category=category,
@@ -103,6 +144,14 @@ def load_mapping(
             raise ValueError(f"Invalid label mapping: unknown {what} '{value}'")
 
     for spec in rules.values():
+        for group in spec.get("label_rules", {}).values():
+            entries = [*group.get("rules", []), group["default"]]
+            for entry in entries:
+                check(entry.get("category"), taxonomy.categories, "category")
+                check(entry.get("type"), taxonomy.types, "type")
+                check(entry.get("priority"), taxonomy.priorities, "priority")
+                for pattern in entry.get("patterns", []):
+                    re.compile(pattern)  # a broken regular expression fails now, not mid-run
         for rule in spec.get("category_rules", []):
             check(rule["category"], taxonomy.categories, "category")
         for value in spec.get("category", {}).values():

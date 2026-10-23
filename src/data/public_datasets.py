@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import random
 import re
 import unicodedata
@@ -55,6 +56,10 @@ class DatasetSpec:
     queues: tuple[str, ...] = ()
     label_names: tuple[str, ...] = ()
     strip_prefixes: tuple[str, ...] = ()
+    # Keep only tickets attached to a category of the taxonomy (decision of 2026-10-23).
+    require_category: bool = False
+    # Maximum share of a category in the kept set, e.g. {"security": 0.08} (seeded subsampling).
+    category_shares: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -71,6 +76,12 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> PublicConfig:
     with open(path, encoding="utf-8") as handle:
         raw = yaml.safe_load(handle)
     root = Path(__file__).resolve().parents[2]
+    # PUBLIC_DATA_DIR moves the outputs and the download cache out of the repository (short paths
+    # on Windows, nothing risks being committed).
+    override = os.environ.get("PUBLIC_DATA_DIR")
+    if override:
+        raw["output_directory"] = override
+        raw["cache_directory"] = str(Path(override) / "_hf_cache")
     datasets = {}
     for name, d in raw["datasets"].items():
         datasets[name] = DatasetSpec(
@@ -90,6 +101,8 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> PublicConfig:
             queues=tuple(d.get("queues", ())),
             label_names=tuple(d.get("label_names", ())),
             strip_prefixes=tuple(d.get("strip_prefixes", ())),
+            require_category=bool(d.get("require_category", False)),
+            category_shares={k: float(v) for k, v in d.get("category_shares", {}).items()},
         )
     return PublicConfig(
         seed=raw["seed"],
@@ -325,7 +338,8 @@ def filter_records(
     """Apply the cleaning rules in order; return the kept records and the reason counts.
 
     Reasons: ``queue`` (not an IT queue), ``unreadable`` (row without usable label), ``empty``,
-    ``corrupted``, ``too_short``, ``too_long``, ``language`` (not among the dataset languages),
+    ``corrupted``, ``too_short``, ``too_long``, ``language_undecidable`` (no language could be
+    decided), ``language_unsupported`` (decided, but not among the dataset languages),
     ``duplicate``. The first reason met wins, so every dropped row is counted once.
 
     The third value counts corrections that do not drop anything: ``language_corrected`` when
@@ -361,8 +375,11 @@ def filter_records(
         if spec.language_source == "column" and detected in spec.languages and detected != language:
             language = detected  # the text wins over a wrong label
             notes["language_corrected"] += 1
+        if language is None:
+            rejected["language_undecidable"] += 1  # too short or ambiguous: not guessed
+            continue
         if language not in spec.languages:
-            rejected["language"] += 1
+            rejected["language_unsupported"] += 1
             continue
         key = dedup_key(record["subject"], record["body"])
         if key in seen:
@@ -385,13 +402,61 @@ def sample_records(
     return sorted(chosen, key=lambda r: r["origin_id"])
 
 
+def apply_mapping(
+    spec: DatasetSpec, records: list[dict[str, Any]], mapping: LabelMapping
+) -> tuple[list[dict[str, Any]], Counter]:
+    """Attach the label proposal to each record (key ``proposal``) and drop what has no category.
+
+    Only for datasets with ``require_category``: a ticket without category is dropped, and
+    counted under the exclusion reason given by the rules (``no_category`` by default).
+    """
+    kept: list[dict[str, Any]] = []
+    excluded: Counter = Counter()
+    for record in records:
+        proposal = mapping.propose(
+            spec.name, record["original_labels"], record["subject"], record["body"]
+        )
+        if spec.require_category and proposal.category is None:
+            excluded[proposal.exclusion or "no_category"] += 1
+            continue
+        kept.append({**record, "proposal": proposal})
+    return kept, excluded
+
+
+def cap_categories(
+    records: list[dict[str, Any]], shares: dict[str, float], seed: int
+) -> tuple[list[dict[str, Any]], Counter]:
+    """Cap each category of ``shares`` to its maximum share of the kept set.
+
+    The excess is removed by a seeded draw, so the same data and seed give the same result.
+    Share ``s`` and ``n`` tickets of the other categories allow ``s / (1 - s) * n`` tickets of the
+    capped category. Returns the kept records and, per category, how many were removed.
+    """
+    kept = list(records)
+    removed: Counter = Counter()
+    for category, share in shares.items():
+        if not 0 < share < 1:
+            raise ValueError(f"Invalid share {share} for category '{category}'")
+        in_category = sorted(
+            (r for r in kept if r["proposal"].category == category), key=lambda r: r["origin_id"]
+        )
+        limit = int(share / (1 - share) * (len(kept) - len(in_category)))
+        if len(in_category) <= limit:
+            continue
+        chosen = random.Random(f"{seed}:{category}").sample(in_category, limit)
+        keep_ids = {r["origin_id"] for r in chosen}
+        removed[category] = len(in_category) - limit
+        kept = [r for r in kept if r["proposal"].category != category or r["origin_id"] in keep_ids]
+    return kept, removed
+
+
 def finalise(
     spec: DatasetSpec, records: list[dict[str, Any]], mapping: LabelMapping
 ) -> list[dict[str, Any]]:
     """Give stable identifiers and attach the label proposal and the licence."""
     final = []
     for number, record in enumerate(records, start=1):
-        proposal = mapping.propose(
+        proposal = record.get("proposal") or mapping.propose(
             spec.name, record["original_labels"], record["subject"], record["body"]
         )
         final.append(
@@ -441,16 +506,24 @@ def prepare_dataset(
     for path in files:
         rows.extend(read_rows(spec, path))
     kept, rejected, notes = filter_records(spec, rows)
+    labelled, excluded = apply_mapping(spec, kept, mapping)
+    before_cap = Counter(r["proposal"].category for r in labelled)
+    capped, removed = cap_categories(labelled, spec.category_shares, seed)
     target = spec.max_records if limit is None else min(limit, spec.max_records or limit)
-    sampled = sample_records(kept, target, seed)
+    sampled = sample_records(capped, target, seed)
     final = finalise(spec, sampled, mapping)
     report = {
         "dataset": spec.repo_id,
         "license": spec.expected_license,
         "rows_read": len(rows),
         "rejected": dict(rejected),
+        "excluded_by_mapping": dict(excluded),
+        "capped": dict(removed),
         "corrections": dict(notes),
         "kept_after_filter": len(kept),
+        "categories_before_cap": dict(before_cap),
+        "kept_after_mapping": len(labelled),
+        "kept_after_cap": len(capped),
         "kept_after_sampling": len(final),
         "languages": dict(Counter(r["language_source"] for r in final)),
         "proposed_categories": dict(Counter(r["proposed_labels"]["category"] for r in final)),
