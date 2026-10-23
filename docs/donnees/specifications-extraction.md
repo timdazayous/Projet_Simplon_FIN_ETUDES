@@ -1,6 +1,6 @@
 # Spécifications techniques de l'extraction et de l'agrégation
 
-**Statut** : brouillon rédigé le 23 octobre 2026, à relire par le développeur · **Compétences** : C1 (spécifications techniques de l'extraction), C3 (spécifications de l'agrégation), C2 (requêtes SQL et big data)
+**Statut** : validée par le développeur le 23 octobre 2026 ; source de scraping révisée le même jour (le CERT-FR publie une API JSON) · **Compétences** : C1 (spécifications techniques de l'extraction), C3 (spécifications de l'agrégation), C2 (requêtes SQL et big data)
 
 Cette page décrit **comment** le projet récupère ses données depuis cinq sources de types différents, puis les rassemble en un **jeu de données brutes unique**. Elle couvre tout le périmètre, de la source jusqu'à ce jeu brut. Le nettoyage détaillé, la base de données du projet et l'API de données font l'objet de pages séparées.
 
@@ -19,12 +19,15 @@ Le référentiel exige une extraction depuis **cinq types de sources** : un fich
 | Type de source | Source retenue | Ce qu'elle apporte | État |
 |---|---|---|---|
 | Fichier | Jeux de tickets publics sur Hugging Face (CSV et Parquet) | Tickets réels ou réalistes, étiquetés, pour l'entraînement et le test externe | **Réalisé** (#29) |
-| API REST | API publique **endoflife.date** | Dates de fin de support des systèmes et logiciels | Proposé, à valider |
+| API REST | API publique **endoflife.date** | Dates de fin de support des systèmes et logiciels | **Réalisé** (#41) |
+| API REST (complément) | API JSON du **CERT-FR** | Avis de sécurité : produits touchés, versions, CVE, recommandations | En cours (#42) |
 | Base de données | Base **MariaDB de GLPI**, en SQL direct | Tickets, suivis et catégories de l'outil de ticketing | À réaliser après le premier démarrage de GLPI |
-| Scraping | Avis de sécurité du **CERT-FR** | Logiciels touchés, versions, CVE et recommandations | À réaliser |
+| Scraping | Pages publiques **Windows release health** de Microsoft Learn | Problèmes connus des mises à jour Windows, statut, KB d'origine et de résolution | À réaliser (#45) |
 | Big data | **Historique Parquet** interrogé avec **Spark SQL** | Plusieurs mois de tickets et d'alertes, pour l'analyse à grande échelle | À réaliser ; volume à fixer selon le poste |
 
 **L'API de GLPI** (API v2, OAuth2) reste utilisée : elle sert à **injecter** les tickets générés dans GLPI et à lire les tickets courants. Elle n'est pas comptée comme la source « API REST », pour que deux types d'extraction ne reposent pas sur le même outil.
+
+**Correction du 23 octobre 2026** : la première version de cette page prévoyait de scraper les pages HTML du CERT-FR, au motif que leur contenu détaillé n'était pas disponible autrement. C'était faux : le CERT-FR publie une **API JSON officielle**, décrite en OpenAPI. Scraper une page quand une API existe n'étant pas justifiable, le CERT-FR est extrait par son API et la source de scraping devient les pages « Windows release health » de Microsoft, qui n'ont pas d'accès structuré gratuit.
 
 ## Technologies communes
 
@@ -90,20 +93,33 @@ Réalisée dans #41. Le détail figure dans [Extraction des dates de fin de supp
 
 Les requêtes, leurs choix de sélection, de jointure et de filtrage, ainsi que leurs optimisations (index utilisés, projection des colonnes), seront documentés pour C2 avec l'Issue d'extraction.
 
-## Source 4 : scraping (avis du CERT-FR)
+## Source 2 bis : API REST complémentaire (avis du CERT-FR)
 
 | Point | Spécification |
 |---|---|
-| Données | Pour chaque avis (`CERTFR-AAAA-AVI-NNNN`) : date, risques, **systèmes affectés** (logiciel et versions), résumé, références CVE, liens vers les bulletins des éditeurs |
+| Données | Pour chaque avis (`CERTFR-AAAA-AVI-NNNN`) : dates, risques, **systèmes affectés** (éditeur, produit, versions), résumé, références CVE, liens vers les bulletins des éditeurs |
 | Pourquoi | Rattacher un ticket `security` ou une alerte au logiciel concerné et aux avis récents ; c'est aussi la veille métier d'un MSP |
-| Accès | Pages HTML publiques de `https://cert.cyber.gouv.fr/avis/` (l'ancienne adresse `cert.ssi.gouv.fr` redirige vers celle-ci) |
-| Pourquoi du scraping et pas le flux RSS | Le flux ne contient que le titre et un résumé. Les systèmes affectés, les CVE et les recommandations ne figurent que dans la page de l'avis |
-| Contraintes | Contenus sous **Licence Ouverte Etalab 2.0** (réutilisation libre avec mention de la source, vérifiée dans les mentions légales le 23 octobre 2026) ; `robots.txt` n'interdit pas `/avis/` (seuls `/pdf`, `/tar`, `/js`, `/fonts` et `/fiche/` le sont) ; **une requête toutes les 2 secondes au plus**, avec un User-Agent qui identifie le projet ; structure HTML susceptible de changer : le script échoue avec un message clair plutôt que de produire des champs vides |
-| Technologie | `httpx2` pour télécharger, **BeautifulSoup** pour analyser le HTML |
-| Sortie | `data/raw/certfr/avis.jsonl`, avec la date d'extraction et l'adresse de la page |
-| Fréquence | Quotidienne, incrémentale : seuls les avis absents de la sortie sont téléchargés |
+| Accès | API JSON publique : `https://cert.cyber.gouv.fr/avis/json/` (liste) et `https://cert.cyber.gouv.fr/avis/<référence>/json/` (détail), décrite en OpenAPI, sans clé |
+| Contraintes | Contenus sous **Licence Ouverte Etalab 2.0** (réutilisation libre avec mention de la source) ; `robots.txt` respecté ; une requête toutes les 2 secondes au plus, User-Agent qui identifie le projet |
+| Sortie | `data/raw/certfr/avis.jsonl` |
+| Fréquence | Quotidienne, incrémentale (avis nouveaux ou révisés) |
 
-**Alternative écartée** : Selenium, vu en formation, mais inutile ici car les pages sont du HTML statique, sans JavaScript à exécuter. Il est plus lourd (navigateur à piloter) et plus lent.
+Le détail figure dans la page de la source, publiée avec #42.
+
+## Source 4 : scraping (problèmes connus des mises à jour Windows)
+
+| Point | Spécification |
+|---|---|
+| Données | Pour chaque problème connu : version de Windows, titre, statut (ouvert, atténué, résolu), dates de publication et de mise à jour, KB d'origine et de résolution, plateformes touchées, résumé court, adresse de la page |
+| Pourquoi | Après une mise à jour mensuelle, un MSP reçoit des vagues de tickets (« écran noir après la mise à jour », « l'imprimante ne marche plus depuis ce matin »). Savoir que Microsoft a reconnu le problème aide à les comprendre, et plus tard à les regrouper |
+| Accès | Pages publiques en français de `https://learn.microsoft.com/fr-fr/windows/release-health/` (une page par version de Windows suivie) |
+| Pourquoi du scraping | L'accès structuré passe par l'API Microsoft Graph (annonces de service), qui exige un compte Microsoft 365 administrateur, donc un abonnement. Les pages publiques sont le seul accès gratuit. À confirmer au début de l'Issue : aucun flux public structuré ne fournit ces informations |
+| Contraintes | `robots.txt` de learn.microsoft.com sans restriction sur ces pages (vérifié le 23 octobre 2026) ; **conditions d'utilisation** : usage personnel et non commercial autorisé, interdiction de copier, publier ou redistribuer. Donc **aucun contenu Microsoft dans le dépôt**, y compris dans les tests (HTML fictif), données uniquement en local, et en pré-production publique seulement le titre du problème et le lien vers Microsoft ; une requête toutes les 2 secondes au plus |
+| Technologie | `httpx2` pour télécharger, **BeautifulSoup** pour analyser le HTML ; erreur explicite si la structure attendue n'est pas trouvée |
+| Sortie | `data/raw/windows_known_issues/issues.jsonl` |
+| Fréquence | Quotidienne, incrémentale |
+
+**Alternatives écartées** : Selenium, si les pages sont statiques (plus lourd, plus lent) ; l'API Microsoft Graph, qui exige un abonnement ; le scraping du CERT-FR, qui publie une API (voir plus haut) ; le scraping de forums de dépannage (conditions d'utilisation, données personnelles, aucun apport pour un classifieur qui a besoin de tickets étiquetés).
 
 ## Source 5 : big data (historique Parquet et Spark SQL)
 
@@ -124,7 +140,7 @@ Les cinq sources ne décrivent pas toutes la même chose : il faut d'abord fixer
 | Ensemble | Sources | Clé |
 |---|---|---|
 | **Tickets et alertes** | Jeux publics, GLPI (SQL), historique big data | Identifiant d'origine préfixé par la source (`PUB-`, `GLPI-`, `GEN-`) |
-| **Référentiel des produits** | endoflife.date, CERT-FR | Nom de produit normalisé (par exemple `windows-server`) et version |
+| **Référentiel des produits** | endoflife.date, CERT-FR, problèmes connus de Windows | Nom de produit normalisé (par exemple `windows-server`) et version |
 
 Le jeu de données brutes unique est une table Parquet de tickets et d'alertes au **schéma commun**. Les informations de produit y sont rattachées par jointure lorsqu'un ticket cite un produit connu : fin de support atteinte, avis de sécurité récent.
 
@@ -138,7 +154,7 @@ Le jeu de données brutes unique est une table Parquet de tickets et d'alertes a
 | `category`, `type`, `priority`, `team` | Étiquettes de la taxonomie, ou vides si inconnues |
 | `label_origin` | D'où vient l'étiquette : générateur, règle de correspondance, saisie dans GLPI |
 | `products` | Produits cités (nom normalisé, version) |
-| `product_eol`, `security_advisories` | Rattachement à endoflife.date et au CERT-FR |
+| `product_eol`, `security_advisories`, `known_issues` | Rattachement à endoflife.date, au CERT-FR et aux problèmes connus de Windows |
 
 Règles d'homogénéisation :
 
@@ -152,22 +168,23 @@ Règles d'homogénéisation :
 
 - **Secrets** (compte SQL en lecture seule, client OAuth de GLPI) uniquement dans `.env`.
 - **Pseudonymisation et masquage des secrets à l'import**, avant tout stockage dans le jeu agrégé ou envoi à un service externe.
-- **Aucune donnée personnelle** n'est collectée sur le CERT-FR ni sur endoflife.date (contenus techniques publics).
+- **Aucune donnée personnelle** n'est collectée sur endoflife.date, le CERT-FR ni Microsoft Learn (contenus techniques publics).
+- **Contenus tiers** : les conditions d'utilisation de Microsoft Learn interdisent la redistribution ; rien n'est versionné ni republié.
 - **Respect des sources** : licences vérifiées, `robots.txt` respecté, débit limité, User-Agent identifiable.
 
 ## Découpage prévu
 
 | Étape | Dépend de | Issue |
 |---|---|---|
-| Source 2 : extraction endoflife.date | Validation du choix | À créer |
-| Source 4 : scraping du CERT-FR | — | À créer |
+| Source 2 : extraction endoflife.date | — | #41 (terminée) |
+| Source 2 bis : API du CERT-FR | — | #42 |
+| Source 4 : scraping des problèmes connus de Windows | — | #45 |
 | Injection des tickets générés dans GLPI (API v2) | Premier démarrage de GLPI | À créer |
 | Source 3 : extraction SQL de GLPI | Injection | À créer |
 | Source 5 : historique Parquet et Spark SQL | Décision sur le volume | À créer |
 | Agrégation en un jeu unique | Les cinq sources | À créer |
 
-## Points à valider par le développeur
+## Décisions et points restant ouverts
 
-- Remplacer l'API de GLPI par **endoflife.date** comme source « API REST ».
-- Liste des produits suivis sur endoflife.date (proposition : ceux du parc simulé et de la stack du projet).
-- Volume de l'historique big data, à fixer après une mesure sur le poste.
+- Validé le 23 octobre 2026 : endoflife.date remplace l'API de GLPI comme source « API REST » ; produits suivis listés dans `config/eol_products.yaml` ; CERT-FR par son API ; scraping sur Microsoft Learn. D'autres sources de scraping pourront être ajoutées plus tard.
+- Ouvert : volume de l'historique big data, à fixer après une mesure sur le poste.

@@ -149,6 +149,10 @@ En attente du développeur :
 - #36 (site sans Google Fonts, RGPD, ajoutée au sprint 2) : terminée (PR #37).
 - #29 : phases 1 et 2 fusionnées (PR #38, #39 : étiquetage, glossaire, commande de nuit). **Le développeur lance la traduction complète** (7 682 + 457 + 800 tickets, environ 3 h, fermer Discord et Qoder avant ; commande dans `docs/donnees/recuperation-traduction.md`), puis relit les 50 tickets de référence. Répartition de l'entraînement à choisir après traduction ; catégories absentes du test externe évaluées sur des tickets générés (optimiste, décision du 2026-10-23). Mettre à jour la ligne « Corpus » ensuite.
 
+- **Sources de données** (spécification validée le 2026-10-23, `docs/donnees/specifications-extraction.md`) : fichier = jeux publics (#29) ; API REST = endoflife.date (#41, terminée) + CERT-FR par son API JSON (#42, PR #44 en réécriture) ; base de données = MariaDB de GLPI ; scraping = problèmes connus Windows sur Microsoft Learn (#45, prête ; aucun contenu Microsoft versionné, conditions d'utilisation) ; big data = Parquet + Spark (volume à fixer). L'API de GLPI sert à l'injection, pas comptée comme source. Le développeur pourra proposer d'autres sources de scraping plus tard.
+- **Rôle du LLM** (2026-10-23) : réévaluation de la priorité des tickets ouverts sur message client lié ; résumé IA en option dans l'interface ; suggestion de résolution écartée. Adapter `scripts/llm_poc.py` en phase 3.
+- **Skill `referentiel`** : volontairement hors du dépôt public (règle `referentiel/` du `.gitignore`), sauvegardée dans `../memo-oral-simplon/skill-referentiel/` : resynchroniser après chaque modification.
+
 Labels : `E1-donnees` à `E5-production`, `transverse`, `pour:sonnet` (prête à coder), `pour:tim` (action ou décision du développeur), `decision`, `optionnel` (bonus abandonnable sans impact sur le référentiel).
 
 ## Aide-mémoire technique
