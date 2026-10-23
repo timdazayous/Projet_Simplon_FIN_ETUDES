@@ -28,7 +28,9 @@ datasets:
     # fixe. 8 % = poids de `security` dans config/generator.yaml (8 sur 102, soit 7,8 %).
     category_shares:
       security: 0.08
-    max_records: 3600 # plafond global, tirage reproductible (graine ci-dessus)
+    # Décision du 2026-10-23 : tout traduire (7 682 tickets) et choisir la répartition après
+    # traduction, sans retraduire. Un entier rétablit un tirage reproductible.
+    max_records: null
     min_chars: 20
     max_chars: 4000
     attribution: >-

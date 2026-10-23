@@ -10,9 +10,9 @@ Cette page décrit comment les jeux publics retenus dans l'[inventaire](jeux-pub
 
 - Trois jeux sont récupérés depuis Hugging Face : un pour l'entraînement, un pour le test externe, un en complément pour la revue de priorité.
 - La licence de chaque jeu est **vérifiée sur la carte Hugging Face avant tout téléchargement**. Si elle diffère de celle attendue, le script s'arrête.
-- Après nettoyage, correspondance des étiquettes, plafonnement de `security` et tirage reproductible, il reste **3 600 tickets d'entraînement (sur 7 682 disponibles), 457 tickets de test externe et 800 cas d'urgence**, soit environ 1,9 million de caractères à traduire.
+- Après nettoyage, correspondance des étiquettes, plafonnement de `security` et tirage reproductible, il reste **7 682 tickets d'entraînement, 457 tickets de test externe et 800 cas d'urgence**. Décision du 2026-10-23 : on traduit les 7 682 tickets d'entraînement et l'on choisit la répartition **après** traduction (tirage au hasard ou limite par catégorie), sans avoir à retraduire.
 - Décisions du 23 octobre appliquées : seuls les tickets rattachés à une catégorie sont gardés ; `security` est plafonné à 8 % ; les classes tasksource « Fileservice », « EOL » et « Support general » sont découpées par règles de mots-clés ; les 65 textes de langue indécidable sont écartés ; un glossaire protège les termes techniques pendant la traduction.
-- Sur CPU, avec 4 threads, la traduction de 50 tickets prend **de 50 à 61 secondes** (environ une seconde par ticket). L'extrapolation donne **environ 1 h 20 à 1 h 45** pour tout le corpus (faisceau de 4 : environ 1 h 45). C'est bien moins que les « quelques heures » estimées dans l'inventaire.
+- Sur CPU, avec 4 threads, la traduction de 50 tickets prend **de 50 à 61 secondes** (environ une seconde par ticket). L'extrapolation donne **environ 3 h** au faisceau de 4 pour les quelque 8 940 tickets à traduire (environ 1 h 45 pour l'ancien tirage de 3 600). C'est bien moins que les « quelques heures » estimées dans l'inventaire.
 - Le poste n'est pas saturé : le processus utilise environ un tiers du processeur et au plus 1,8 Go de mémoire.
 - Le corpus public réel est très **déséquilibré** (rien pour `procurement` et `admin_billing`, très peu pour `printing`, `backup`, `telephony`, `messaging`) : le générateur doit produire environ **3 100 à 3 700 messages** au lieu des 2 400 prévus (voir « Répartition du corpus »).
 
@@ -445,7 +445,7 @@ Ce que fait `scripts/translate_all.py` :
 
 - Libérer de la mémoire : le modèle portugais (72 tickets de tasksource) monte à environ 1,8 Go, donc le garde-fou demande environ **3,3 Go libres** au départ. Le 23 octobre, il restait environ 2 Go libres avec le navigateur, Discord et l'éditeur ouverts : le lancement s'arrêterait sur le portugais (le reste serait traduit, la reprise couvrirait la fin).
 - Empêcher la mise en veille de l'ordinateur et le laisser branché.
-- Prévoir **environ 1 h 45** : 83 minutes pour Tobi-Bueck, 6 pour tasksource, 16 pour decisionmodelhub, d'après les mesures de la phase 1 en faisceau 4 (le glossaire ajoute un coût négligeable mais **non mesuré** sur le volume complet). Compter jusqu'à 2 h 30 si le poste est chargé.
+- Prévoir **environ 3 h** (7 682 tickets Tobi-Bueck, soit environ 2 h 40, plus 6 minutes pour tasksource et 16 pour decisionmodelhub ; l'ancien tirage de 3 600 prenait 83 minutes pour Tobi-Bueck), d'après les mesures de la phase 1 en faisceau 4 (le glossaire ajoute un coût négligeable mais **non mesuré** sur le volume complet). Compter jusqu'à 2 h 30 si le poste est chargé.
 - Le téléchargement est inclus dans la première exécution : environ 27 Mo de jeux, et jusqu'à 1,9 Go de modèles s'ils ne sont pas déjà dans le cache Hugging Face.
 
 **Après** : les fichiers `*_fr.jsonl` et les rapports `*_translation_report.json` (durées, mémoire, processeur, drapeaux `tag_not_restored`) sont dans le dossier de sortie. Vérifier qu'aucun processus Python de traduction ne reste actif.
@@ -478,7 +478,7 @@ Le développeur choisira. Chaque option a ses limites.
 
 **Décidé le 23 octobre 2026** : option A (traduction complète en local, de nuit), faisceau de 4, 65 textes de langue indécidable écartés. La commande est décrite dans « Commande de nuit ».
 
-**Reste à décider** : le tirage de l'entraînement (3 600 au hasard, ou public limité par catégorie, voir « Répartition du corpus »), et l'ajustement de `config/generator.yaml` qui en découle.
+**Reste à décider, après traduction** : la répartition de l'entraînement (tirage au hasard, ou public limité par catégorie, voir « Répartition du corpus »), et l'ajustement de `config/generator.yaml` qui en découle. Les quatre catégories absentes du test externe (`printing`, `backup`, `procurement`, `admin_billing`) seront évaluées sur des tickets générés, résultat signalé comme optimiste (décision du 2026-10-23).
 
 ## Ce qui n'a pas été vérifié
 
