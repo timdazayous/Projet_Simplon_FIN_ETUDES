@@ -23,6 +23,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 DEFAULT_MIN_AVAILABLE_MB = 1500  # below this, the run stops (the machine is already loaded)
 
 
@@ -219,14 +221,105 @@ def has_leftover_code(text: str) -> bool:
     return bool(_LEFTOVER_CODE.search(text))
 
 
+# --------------------------------------------------------------------------- glossary
+
+DEFAULT_GLOSSARY_PATH = Path(__file__).resolve().parents[2] / "config" / "translation_glossary.yaml"
+_GLOSSARY_FIRST_CODE = 900  # codes ZZ900ZZ to ZZ999ZZ: no clash with the tag codes (100 to 899)
+_GLOSSARY_MAX_TERMS = 100
+
+
+@dataclass(frozen=True)
+class GlossaryTerm:
+    """One protected term: kept as written, or replaced by a fixed French wording (``fr``)."""
+
+    term: str
+    fr: str | None = None
+    ignore_case: bool = False
+
+    @property
+    def restored(self) -> str:
+        return self.fr if self.fr is not None else self.term
+
+
+class Glossary:
+    """Technical terms that OPUS-MT mistranslates ("Light User", "Active Directory"...).
+
+    Same mechanism as the ``[NAME]`` tags: the term is replaced by an opaque code before
+    translation and put back afterwards, as written in the glossary file (or as its fixed French
+    wording). Matching respects word boundaries and, unless ``ignore_case``, the case.
+    """
+
+    def __init__(self, terms: list[GlossaryTerm]) -> None:
+        if len(terms) > _GLOSSARY_MAX_TERMS:
+            raise ValueError(f"The glossary holds at most {_GLOSSARY_MAX_TERMS} terms")
+        self.terms = terms
+        # Longest first, so that "File Share Access" wins over "File Share".
+        order = sorted(range(len(terms)), key=lambda i: len(terms[i].term), reverse=True)
+        parts = []
+        for i in order:
+            flag = "i" if terms[i].ignore_case else "-i"
+            parts.append(f"(?P<t{i}>(?{flag}:{re.escape(terms[i].term)}))")
+        self._pattern = re.compile(r"(?<!\w)(?:" + "|".join(parts) + r")(?!\w)") if parts else None
+
+    @staticmethod
+    def code(index: int) -> str:
+        return f"ZZ{_GLOSSARY_FIRST_CODE + index}ZZ"
+
+    def mask(self, text: str) -> tuple[str, dict[str, str]]:
+        """Replace every term by its code; return the new text and the code -> wording table."""
+        table: dict[str, str] = {}
+        if self._pattern is None:
+            return text, table
+
+        def replace(match: re.Match[str]) -> str:
+            index = int(match.lastgroup[1:])  # type: ignore[index]
+            code = self.code(index)
+            table[code] = self.terms[index].restored
+            return code
+
+        return self._pattern.sub(replace, text), table
+
+
+def load_glossary(path: str | Path = DEFAULT_GLOSSARY_PATH) -> Glossary:
+    """Read the glossary file (``terms``: list of ``{term, fr?, ignore_case?}``)."""
+    with open(path, encoding="utf-8") as handle:
+        raw = yaml.safe_load(handle) or {}
+    terms = [
+        GlossaryTerm(
+            term=str(entry["term"]),
+            fr=entry.get("fr"),
+            ignore_case=bool(entry.get("ignore_case", False)),
+        )
+        for entry in raw.get("terms", [])
+    ]
+    seen: set[str] = set()
+    for t in terms:
+        key = t.term if not t.ignore_case else t.term.lower()
+        if key in seen:
+            raise ValueError(f"Glossary term listed twice: '{t.term}'")
+        seen.add(key)
+    return Glossary(terms)
+
+
 def translate_texts(
-    texts: list[str], language: str, translate_segments: Callable[[str, list[str]], list[str]]
+    texts: list[str],
+    language: str,
+    translate_segments: Callable[[str, list[str]], list[str]],
+    glossary: Glossary | None = None,
 ) -> list[str]:
     """Translate several texts at once (one batch call for all their segments).
 
-    Masking tags are protected, blank segments and separators are kept as they are.
+    Glossary terms and masking tags are protected, blank segments and separators are kept as
+    they are.
     """
-    masked = [mask_tags(t) for t in texts]
+    masked = []
+    for text in texts:
+        if glossary is not None:
+            text, glossary_table = glossary.mask(text)
+        else:
+            glossary_table = {}
+        text, tag_table = mask_tags(text)
+        masked.append((text, {**glossary_table, **tag_table}))
     split = [split_text(m) for m, _ in masked]
     to_translate = sorted(
         {
@@ -338,6 +431,7 @@ def translate_records(
     models: dict[str, dict[str, str]],
     chunk_size: int = 10,
     log: Callable[[str], None] = print,
+    glossary: Glossary | None = None,
 ) -> dict[str, Any]:
     """Translate ``records`` language by language, in chunks, saving each chunk through ``sink``.
 
@@ -358,9 +452,11 @@ def translate_records(
                 chunk = group[start : start + chunk_size]
                 guard.check(f"langue {language}")
                 subjects = translate_texts(
-                    [r["subject"] for r in chunk], language, translate_segments
+                    [r["subject"] for r in chunk], language, translate_segments, glossary
                 )
-                bodies = translate_texts([r["body"] for r in chunk], language, translate_segments)
+                bodies = translate_texts(
+                    [r["body"] for r in chunk], language, translate_segments, glossary
+                )
                 translated = [
                     {
                         **r,
@@ -427,3 +523,67 @@ def append_jsonl(path: Path, records: Iterable[dict[str, Any]]) -> None:
     with open(path, "a", encoding="utf-8", newline="\n") as handle:
         for record in records:
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def translate_file(
+    source: Path,
+    target: Path,
+    report_path: Path,
+    models: dict[str, dict[str, str]],
+    glossary: Glossary | None,
+    *,
+    seed: int,
+    limit: int | None = None,
+    resume: bool = False,
+    threads: int = 4,
+    batch_size: int = 8,
+    beams: int = 2,
+    min_ram_mb: float = DEFAULT_MIN_AVAILABLE_MB,
+    log: Callable[[str], None] = print,
+) -> dict[str, Any]:
+    """Translate one prepared JSONL file into ``target`` and write the timing report.
+
+    ``resume`` keeps the tickets already present in ``target``; otherwise ``target`` is replaced.
+    Returns the statistics (``status`` is ``ok`` or ``stopped_low_memory``). Needs the uv group
+    ``translate`` (torch and transformers are imported by :class:`OpusTranslator`).
+    """
+    records = read_jsonl(source)
+    if limit:
+        records = select_mixed_sample(records, limit, seed)
+    already_done = 0
+    if resume and target.exists():
+        done = {r["id"] for r in read_jsonl(target)}
+        already_done = len(done)
+        records = [r for r in records if r["id"] not in done]
+    elif target.exists():
+        target.unlink()  # a fresh run replaces the previous output
+    log(f"{len(records)} tickets à traduire ({already_done} déjà faits), {threads} threads")
+
+    guard = MemoryGuard(min_ram_mb)
+    guard.check("avant le démarrage")
+    translator = OpusTranslator(models, guard, threads, batch_size, beams)
+    with ResourceMonitor(interval=2.0) as monitor:
+        stats = translate_records(
+            records,
+            translator.translate,
+            guard,
+            lambda chunk: append_jsonl(target, chunk),
+            models,
+            log=log,
+            glossary=glossary,
+        )
+    stats["resources"] = monitor.summary()
+    stats["settings"] = {
+        "threads": threads,
+        "batch_size": batch_size,
+        "beams": beams,
+        "min_ram_mb": min_ram_mb,
+        "glossary_terms": len(glossary.terms) if glossary else 0,
+        "resume": resume,
+        "already_done": already_done,
+    }
+    stats["model_revisions"] = translator.revisions
+    stats["model_load_seconds"] = translator.load_seconds
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8")
+    return stats

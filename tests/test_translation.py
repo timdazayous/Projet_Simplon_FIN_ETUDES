@@ -9,12 +9,15 @@ import time
 import pytest
 
 from src.data.translation import (
+    Glossary,
+    GlossaryTerm,
     LowMemoryError,
     MemoryGuard,
     ResourceMonitor,
     Sample,
     append_jsonl,
     has_leftover_code,
+    load_glossary,
     mask_tags,
     read_jsonl,
     select_mixed_sample,
@@ -210,3 +213,178 @@ def test_jsonl_helpers_round_trip_accents(tmp_path):
     assert read_jsonl(path) == [{"a": "é"}, {"a": "ü"}]
     assert "é" in path.read_text(encoding="utf-8")  # not escaped
     assert json.loads(path.read_text(encoding="utf-8").splitlines()[1]) == {"a": "ü"}
+
+
+# --------------------------------------------------------------------------- glossary
+
+
+def make_glossary() -> Glossary:
+    return Glossary(
+        [
+            GlossaryTerm("Active Directory", ignore_case=True),
+            GlossaryTerm("File Share Access", fr="Accès à un partage de fichiers"),
+            GlossaryTerm("File Share", fr="Partage de fichiers"),
+            GlossaryTerm("Light User", ignore_case=True),
+            GlossaryTerm("Teams"),
+            GlossaryTerm("VPN"),
+        ]
+    )
+
+
+def test_glossary_masks_terms_and_restores_them_as_written_in_the_glossary():
+    glossary = make_glossary()
+    masked, table = glossary.mask("Create a Light User in Active Directory over the VPN.")
+    assert "Light User" not in masked and "Active Directory" not in masked and "VPN" not in masked
+    assert unmask_tags(masked, table) == "Create a Light User in Active Directory over the VPN."
+
+
+def test_glossary_ignore_case_restores_the_canonical_spelling():
+    glossary = make_glossary()
+    masked, table = glossary.mask("light user and ACTIVE DIRECTORY")
+    assert unmask_tags(masked, table) == "Light User and Active Directory"
+
+
+def test_glossary_respects_case_when_ignore_case_is_off():
+    masked, table = make_glossary().mask("Our teams use Teams. vpn and VPN.")
+    assert masked.count("ZZ") == 4  # two codes: "Teams" and the upper-case "VPN"
+    assert "our teams" in masked.lower() and "vpn and" in masked  # lower-case words untouched
+
+
+def test_glossary_matches_whole_words_only():
+    masked, table = make_glossary().mask("VPNs and MyTeams and Teamsite")
+    assert table == {}
+    assert masked == "VPNs and MyTeams and Teamsite"
+
+
+def test_glossary_longest_term_wins_and_fixed_wording_replaces_the_term():
+    glossary = make_glossary()
+    masked, table = glossary.mask("File Share Access for the File Share")
+    assert unmask_tags(masked, table) == (
+        "Accès à un partage de fichiers for the Partage de fichiers"
+    )
+    assert len(table) == 2  # "File Share Access" was not cut into "File Share" + "Access"
+
+
+def test_glossary_codes_do_not_clash_with_tag_codes():
+    glossary = make_glossary()
+    masked, table = glossary.mask("Light User [NAME] [COMPANY] [SOMETHING NEW] Active Directory")
+    masked, tags = mask_tags(masked)
+    assert not set(table) & set(tags)
+    assert unmask_tags(masked, {**table, **tags}) == (
+        "Light User [NAME] [COMPANY] [SOMETHING NEW] Active Directory"
+    )
+
+
+def test_translate_texts_never_gives_glossary_terms_to_the_model():
+    seen: list[str] = []
+
+    def spy(language: str, segments: list[str]) -> list[str]:
+        seen.extend(segments)
+        return [s.upper() for s in segments]  # the "model" shouts: unprotected terms would change
+
+    result = translate_texts(
+        ["Create a Light User in Active Directory for [NAME]"], "en", spy, make_glossary()
+    )
+    assert result == ["CREATE A Light User IN Active Directory FOR [NAME]"]
+    assert all("Light User" not in s and "Active Directory" not in s for s in seen)
+
+
+def test_translate_texts_without_glossary_is_unchanged():
+    assert translate_texts(["Light User"], "en", fake_translate) == ["LIGHT USER"]
+
+
+def test_translate_records_applies_the_glossary_to_subject_and_body():
+    saved: list[dict] = []
+    records = [{"id": "1", "language_source": "en", "subject": "Light User", "body": "Use VPN"}]
+    translate_records(
+        records,
+        fake_translate,
+        MemoryGuard(1, reader=lambda: 10_000),
+        saved.extend,
+        MODELS,
+        log=lambda _: None,
+        glossary=make_glossary(),
+    )
+    assert saved[0]["subject_fr"] == "Light User"
+    assert saved[0]["body_fr"] == "USE VPN"
+    assert saved[0]["translation_flags"] == []
+
+
+def test_load_glossary_reads_a_file_and_refuses_duplicates(tmp_path):
+    path = tmp_path / "glossary.yaml"
+    path.write_text("terms:\n  - {term: VPN}\n  - {term: Teams, fr: Équipes}\n", encoding="utf-8")
+    glossary = load_glossary(path)
+    assert [t.term for t in glossary.terms] == ["VPN", "Teams"]
+    assert glossary.terms[1].restored == "Équipes"
+
+    path.write_text(
+        "terms:\n  - {term: VPN, ignore_case: true}\n  - {term: vpn, ignore_case: true}\n", "utf-8"
+    )
+    with pytest.raises(ValueError, match="twice"):
+        load_glossary(path)
+
+
+def test_translate_file_resumes_without_retranslating(tmp_path, monkeypatch):
+    """The night command restarts where it stopped: tickets already in the output are skipped."""
+    import src.data.translation as translation
+
+    class FakeTranslator:
+        calls: list[list[str]] = []
+
+        def __init__(self, *args, **kwargs):
+            self.revisions = {}
+            self.load_seconds = {}
+
+        def translate(self, language, segments):
+            FakeTranslator.calls.append(segments)
+            return [s.upper() for s in segments]
+
+    monkeypatch.setattr(translation, "OpusTranslator", FakeTranslator)
+    monkeypatch.setattr(translation, "MemoryGuard", lambda mb: MemoryGuard(mb, lambda: 10_000))
+    source, target, report = tmp_path / "in.jsonl", tmp_path / "out.jsonl", tmp_path / "r.json"
+    records = [
+        {"id": f"T{i}", "language_source": "en", "subject": f"Subject {i}", "body": "Use VPN now"}
+        for i in range(3)
+    ]
+    append_jsonl(source, records)
+    append_jsonl(target, [{**records[0], "subject_fr": "DONE"}])  # one ticket already translated
+
+    stats = translation.translate_file(
+        source,
+        target,
+        report,
+        MODELS,
+        make_glossary(),
+        seed=1,
+        resume=True,
+        log=lambda _: None,
+    )
+    assert stats["status"] == "ok"
+    assert stats["settings"]["already_done"] == 1
+    assert [r["id"] for r in read_jsonl(target)] == ["T0", "T1", "T2"]
+    assert read_jsonl(target)[0]["subject_fr"] == "DONE"  # not translated again
+    assert read_jsonl(target)[1]["body_fr"] == "USE VPN NOW"
+    assert json.loads(report.read_text(encoding="utf-8"))["settings"]["beams"] == 2
+
+    translation.translate_file(
+        source, target, report, MODELS, None, seed=1, resume=False, log=lambda _: None
+    )
+    assert len(read_jsonl(target)) == 3  # a fresh run replaces the output
+    assert read_jsonl(target)[0]["subject_fr"] == "SUBJECT 0"
+
+
+def test_glossary_is_limited_to_the_code_range():
+    with pytest.raises(ValueError, match="at most"):
+        Glossary([GlossaryTerm(f"term{i}") for i in range(101)])
+
+
+def test_real_glossary_is_valid_and_covers_the_terms_found_mistranslated():
+    glossary = load_glossary()
+    terms = {t.term for t in glossary.terms}
+    assert {"Active Directory", "Light User", "Basis User", "VPN", "Outlook", "Teams"} <= terms
+    assert {"SharePoint", "OneDrive", "Exchange", "Citrix"} <= terms
+    assert {"Office 365", "O365"} <= terms
+    masked, table = glossary.mask("Remove File Share Access for the Light User in Office 365")
+    assert unmask_tags(masked, table) == (
+        "Suppression d'accès à un partage de fichiers for the Light User in Office 365"
+    )

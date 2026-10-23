@@ -1,0 +1,70 @@
+# Glossaire de termes techniques protégés avant la traduction automatique (Issue #29, phase 2).
+# Documentation : docs/donnees/recuperation-traduction.md (section « Glossaire »).
+#
+# Chaque terme est remplacé par un code opaque avant la traduction (comme les balises [NAME]),
+# puis remis en place après : le modèle OPUS-MT ne le voit jamais. Sans cela, il traduit
+# « Light User » en « Utilisateur de lumière » ou « Active Directory » en « Annuaire actif ».
+#
+# Champs :
+#   term         terme tel qu'il est écrit dans les tickets (mot entier)
+#   fr           (facultatif) formulation française imposée ; sinon le terme est restitué tel quel
+#   ignore_case  (facultatif, faux par défaut) ignorer la casse. À éviter pour les mots courants
+#                (Teams, Exchange) : « our teams » ne doit pas être protégé.
+# Les termes les plus longs l'emportent (« File Share Access » avant « File Share »). Maximum
+# 100 termes. Un terme déclaré deux fois est refusé.
+
+terms:
+  # Annuaire, partages et comptes (vocabulaire des tickets tasksource)
+  - {term: Active Directory, ignore_case: true}
+  - {term: Remove File Share Access, fr: Suppression d'accès à un partage de fichiers}
+  - {term: File Share Access, fr: Accès à un partage de fichiers}
+  - {term: file share access, fr: accès à un partage de fichiers}
+  - {term: File Shares, fr: Partages de fichiers}
+  - {term: File Share, fr: Partage de fichiers}
+  - {term: file shares, fr: des partages de fichiers}
+  - {term: file share, fr: un partage de fichiers}
+  - {term: Light User, ignore_case: true}
+  - {term: Basis User, ignore_case: true}
+
+  # Microsoft et messagerie
+  - {term: Office 365, ignore_case: true}
+  - {term: Microsoft 365, ignore_case: true}
+  - {term: O365}
+  - {term: M365}
+  - {term: Outlook, ignore_case: true}
+  - {term: Teams}
+  - {term: SharePoint, ignore_case: true}
+  - {term: OneDrive, ignore_case: true}
+  - {term: Exchange}
+  - {term: Skype}
+  - {term: Intune}
+  - {term: Azure}
+  - {term: BitLocker, ignore_case: true}
+  - {term: Windows}
+
+  # Accès distant et réseau
+  - {term: VPN}
+  - {term: Citrix, ignore_case: true}
+  - {term: TeamViewer, ignore_case: true}
+  - {term: Nexthink, ignore_case: true}
+  - {term: Wi-Fi, ignore_case: true}
+  - {term: WiFi, ignore_case: true}
+  - {term: DHCP}
+  - {term: DNS}
+  - {term: LDAP}
+  - {term: SSO}
+  - {term: MFA}
+
+  # Mobiles
+  - {term: BlackBerry, ignore_case: true}
+  - {term: iPhone}
+  - {term: iPad}
+
+  # Navigateurs, outils et technologies fréquents dans le jeu Tobi-Bueck
+  - {term: Google Chrome}
+  - {term: SaaS}
+  - {term: API}
+  - {term: Kubernetes}
+  - {term: PostgreSQL}
+  - {term: Redis}
+  - {term: ClickUp}

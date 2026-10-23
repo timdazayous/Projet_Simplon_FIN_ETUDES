@@ -1,6 +1,6 @@
-# PROPOSITION de correspondance des étiquettes d'origine vers config/taxonomy.yaml (Issue #29).
-# À valider par le développeur : tant qu'elle ne l'est pas, ces étiquettes sont des suggestions,
-# conservées à côté des étiquettes d'origine (jamais à leur place).
+# Correspondance des étiquettes d'origine vers config/taxonomy.yaml (Issue #29).
+# Règles de tasksource et filtrage de Tobi-Bueck décidés par le développeur le 2026-10-23. Les
+# étiquettes proposées sont conservées à côté des étiquettes d'origine (jamais à leur place).
 # Une valeur `null` signifie « rattachement impossible » : le ticket garde sa catégorie vide.
 
 customer_support:
@@ -38,13 +38,87 @@ it_support:
   category:
     Active Directory: accounts
     Computer-Services: workstation
-    Fileservice: infrastructure
     O365: messaging
     Software: software
-    EOL: null # tickets automatiques « système à mettre en fin de vie » : sens à confirmer
-    Support general: null # trop vague
   # Étiquettes du jeu dont le rattachement est jugé fragile (signalées dans le rapport).
-  doubtful: [Fileservice, Computer-Services]
+  doubtful: [Computer-Services]
+
+  # Classes qui se découpent par mots-clés (décisions du développeur, 2026-10-23). Règles
+  # ordonnées : la première qui correspond l'emporte. Une règle correspond si l'une de ses
+  # expressions régulières (`patterns`, sans tenir compte de la casse) figure dans le sujet ou le
+  # corps, balises de masquage comme [SERVER] retirées. `default` s'applique sinon : une
+  # catégorie, ou `exclude` (motif compté dans le rapport) pour ce qui reste vraiment flou.
+  # La règle appliquée est enregistrée pour chaque ticket (champ `rule`).
+  label_rules:
+    Fileservice:
+      rules:
+        - name: fileshare_access
+          category: accounts
+          type: service_request
+          patterns: ['\bfile share access\b']
+        # Demandes de droits écrites librement, parfois en portugais ou en allemand.
+        - name: fileshare_access_free_text
+          category: accounts
+          type: service_request
+          doubtful: true
+          patterns:
+            - '\b(grant|give|remove|revoke)\b[^\n]{0,40}\baccess\b'
+            - '\baccess to\b'
+            - '\bfile access\b'
+            - '\bpermission'
+            - '\bacesso\b'
+            - 'libera[cç]'
+            - 'zugriffsrechte'
+      default: {name: fileservice_other, category: infrastructure}
+    EOL:
+      rules:
+        # Fin de vie d'un poste : la catégorie suit la ressource.
+        - name: eol_workstation
+          category: workstation
+          type: service_request
+          priority: P4
+          patterns: ['\b(laptop|desktop|workstation|notebook|pc)\b']
+      default: {name: eol_server, category: infrastructure, type: service_request, priority: P4}
+    Support general:
+      rules:
+        - name: account_lifecycle
+          category: accounts
+          type: service_request
+          patterns:
+            - '\b(basis|light) user\b'
+            - 'create windows account'
+            - 'leaving employee'
+            - 'adicionar usu[aá]rio'
+        - name: vulnerability_notice
+          category: security
+          doubtful: true
+          patterns: ['\bvulnerable\b', '\bsecurity tools\b']
+        - name: mobile_phone
+          category: telephony
+          patterns:
+            - '\b(mobile|phone|iphone|ipad|smartphone|cell ?phone|celphone|blackberry|bb|passcode)\b'
+            - 'celular|tel[eé]fono|telefone'
+        - name: network_access
+          category: network
+          patterns:
+            - '\b(vpn|wi-?fi|wlan|internet|dhcp|dns|ptr|network|red)\b'
+            - 'conex[aã]o|conexi[oó]n|\bport \d+'
+        - name: credentials
+          category: accounts
+          patterns: ['\b(password|passwort|senha)\b', 'anmelden', 'zugriffsrechte', '\blogin\b']
+        - name: server_work
+          category: infrastructure
+          patterns: ['\bos updates?\b', '\b(file ?)?servers?\b', '\bservidor\b', '\bvm\b']
+        - name: workstation_hardware
+          category: workstation
+          patterns:
+            - '\b(laptop|notebook|desktop)\b'
+            - 'equipo no inicia|cambios? de pc|duplica[cç][aã]o de tela|computador'
+        - name: software_install
+          category: software
+          doubtful: true
+          patterns: ['\binstall', '\bapps?\b', 'aplicativo|aplicaci[oó]n']
+      default: {name: still_vague, exclude: support_general_unclear}
 
 support_urgency:
   # Ce jeu ne porte que sur l'urgence (`expected` : urgent ou no) : il alimente la revue de

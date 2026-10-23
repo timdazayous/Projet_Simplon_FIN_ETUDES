@@ -46,3 +46,6 @@ referentiel/
 
 # Documentation générée
 site/
+
+# Journaux locaux (traduction de nuit, etc.)
+*.log
