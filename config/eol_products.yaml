@@ -1,0 +1,51 @@
+# Produits suivis dans l'API endoflife.date (Issue #41). Documentation : docs/donnees/endoflife.md.
+# Chaque identifiant est celui de l'API (https://endoflife.date/api/v1/products/<identifiant>/),
+# vérifié le 2026-10-23. Un identifiant inconnu (404) est consigné et ignoré par le script.
+
+source:
+  base_url: https://endoflife.date/api/v1/products/
+  # Identifie le projet auprès du service (bonne pratique pour une API publique sans clé).
+  user_agent: "Projet-Simplon-Triage-MSP/0.1 (projet pedagogique; https://github.com/timdazayous/Projet_Simplon_FIN_ETUDES)"
+  license: MIT
+  attribution: "Données endoflife.date, licence MIT (https://github.com/endoflife-date/endoflife.date)"
+
+http:
+  timeout_seconds: 10
+  min_interval_seconds: 1.0   # une requête par seconde au plus
+  max_retries: 3              # nouvelles tentatives sur erreurs 5xx, 429 et réseau
+  backoff_seconds: 2.0        # attente 2 s, 4 s, 8 s (doublée à chaque tentative)
+
+output:
+  directory: data/raw/eol     # ignoré par Git
+  file: products.jsonl
+  report_file: report.json
+  cache_directory: cache      # relatif au dossier de sortie : une réponse par produit et par jour
+
+# Parc simulé par le générateur (config/generator.yaml) et stack du projet.
+products:
+  # Systèmes d'exploitation des serveurs et postes des clients
+  - windows-server
+  - windows
+  - ubuntu
+  - debian
+  - rhel
+  - macos
+  # Messagerie, bureautique, virtualisation, sauvegarde, pare-feu
+  - msexchange
+  - mssqlserver
+  - office
+  - esxi
+  - proxmox-ve
+  - veeam-backup-and-replication
+  - fortios
+  # Stack du projet
+  - postgresql
+  - mariadb
+  - mysql
+  - php
+  - python
+  - nginx
+  - grafana
+  - docker-engine
+  - nodejs
+  - redis
