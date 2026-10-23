@@ -230,6 +230,21 @@ Ce tableau date de la phase 1 : en phase 2, tasksource compte 457 tickets au lie
 
 **Réserves** : mesure sur 50 tickets seulement ; poste chargé, donc les temps peuvent varier ; les débits de l'allemand, de l'espagnol et du portugais pour tasksource sont incertains ; le débit de l'anglais sur les cas d'urgence est supposé égal à celui de Tobi-Bueck (**non mesuré**). Le « complément » éventuel au-delà de ces trois jeux n'est pas compté.
 
+### Mesure de la traduction complète (nuit du 23 au 24 octobre 2026)
+
+Traduction complète lancée sur le poste du développeur (Windows, 12 cœurs, 15 Go de RAM, sans GPU), faisceau de 4, 4 threads, glossaire de 45 termes, applications lourdes fermées. Code de sortie 0, aucun arrêt du garde-fou.
+
+| Jeu | Tickets | Durée | Par ticket | RAM libre minimale | CPU du processus (moyenne) | CPU du système (max) |
+|---|---|---|---|---|---|---|
+| Tobi-Bueck (entraînement) | 7 682 (5 468 en, 2 214 de) | 3 h 23 | 1,6 s | 5,5 Go | 33 % | 68 % |
+| tasksource (test externe) | 457 (en, pt, es, de) | 16 min | 2,1 s | 4,7 Go | 33 % | 64 % |
+| support-urgency (complément) | 800 (en) | 21 min | 1,6 s | 5,4 Go | 33 % | 68 % |
+| **Total** | **8 939** | **4 h 00** | **1,6 s** | **4,7 Go** | **33 %** | **68 %** |
+
+- **Écart avec l'extrapolation** : 4 h au lieu des 3 h prévues, soit environ 30 % de plus. L'extrapolation reposait sur 50 tickets au faisceau de 2 ; le faisceau de 4 et des textes plus longs que l'échantillon expliquent l'écart.
+- **Charge** : le processus n'a jamais dépassé un tiers du processeur, et il est toujours resté au moins 4,7 Go de RAM libre : le poste est resté utilisable. Le chargement de chaque modèle prend de 2 à 7 secondes.
+- **Balises d'anonymisation** : une seule balise non restituée sur 8 939 tickets (drapeau `tag_not_restored`, jeu de test), à corriger à la main lors de la relecture.
+
 ### Tailles à télécharger
 
 | Élément | Taille |
