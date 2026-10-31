@@ -72,7 +72,7 @@ Le développeur a décidé (Issue #26) que la **base principale du corpus** sera
 | Classe du jeu | Catégorie proposée |
 |---|---|
 | Active Directory | `accounts` |
-| Computer-Services | `workstation` |
+| Computer-Services | `printing` pour les imprimantes et copieurs, sinon `workstation` (corrigé le 31 octobre 2026) |
 | Fileservice | `infrastructure` |
 | O365 | `messaging` |
 | Software | `software` |

@@ -37,11 +37,10 @@ it_support:
   # Les étiquettes d'origine sont les classes du jeu. Pas de priorité ni de type dans ce jeu.
   category:
     Active Directory: accounts
-    Computer-Services: workstation
     O365: messaging
     Software: software
   # Étiquettes du jeu dont le rattachement est jugé fragile (signalées dans le rapport).
-  doubtful: [Computer-Services]
+  doubtful: []
 
   # Classes qui se découpent par mots-clés (décisions du développeur, 2026-10-23). Règles
   # ordonnées : la première qui correspond l'emporte. Une règle correspond si l'une de ses
@@ -50,6 +49,16 @@ it_support:
   # catégorie, ou `exclude` (motif compté dans le rapport) pour ce qui reste vraiment flou.
   # La règle appliquée est enregistrée pour chaque ticket (champ `rule`).
   label_rules:
+    # La classe contient presque uniquement des imprimantes et des copieurs (relecture du
+    # 2026-10-31) : `printing` selon la taxonomie, le reste reste un poste de travail.
+    Computer-Services:
+      rules:
+        - name: printing
+          category: printing
+          patterns:
+            - '\b(printers?|printing|prints?|printed|copiers?|photocopiers?|scanners?|scanning|toner|fuser|plotter)\b'
+            - 'impres+ora|imprersora|imprimir|impress[aã]o|imprimante|drucker'
+      default: {name: computer_services_other, category: workstation, doubtful: true}
     Fileservice:
       rules:
         - name: fileshare_access

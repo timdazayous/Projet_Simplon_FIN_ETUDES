@@ -77,7 +77,7 @@ def test_problem_and_change_types_and_missing_critical_priority(mapping):
     [
         ("Active Directory", "accounts", False),
         ("O365", "messaging", False),
-        ("Computer-Services", "workstation", True),
+        ("Computer-Services", "workstation", True),  # without text: the default of the class
         ("Fileservice", "infrastructure", False),  # without text: the default of the class
         ("EOL", "infrastructure", False),
         ("Support general", None, False),  # without text: still vague, excluded
@@ -87,6 +87,33 @@ def test_it_support_labels(mapping, label, category, doubtful):
     proposal = mapping.propose("it_support", {"label": label})
     assert proposal.category == category
     assert proposal.doubtful is doubtful
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "Printer on floor 2 is offline",
+        "Update names on the Copier",
+        "Fuser error on [SERVER]",
+        "Impressora sem toner",
+        "instalacion de impresora parral",
+        "no puede imprimir",
+        "Erro de Impressão",
+    ],
+)
+def test_computer_services_printers_go_to_printing(mapping, body):
+    proposal = mapping.propose("it_support", {"label": "Computer-Services"}, body=body)
+    assert proposal.category == "printing"
+    assert proposal.rule == "Computer-Services:printing"
+    assert proposal.doubtful is False
+
+
+def test_computer_services_other_stays_workstation(mapping):
+    proposal = mapping.propose(
+        "it_support", {"label": "Computer-Services"}, body="Laptop does not start"
+    )
+    assert proposal.category == "workstation"
+    assert proposal.doubtful is True
 
 
 def test_urgency_dataset_has_no_category(mapping):
