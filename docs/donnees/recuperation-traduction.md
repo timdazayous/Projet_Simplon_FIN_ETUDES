@@ -301,7 +301,8 @@ Les règles s'appliquent au sujet et au corps, **balises de masquage retirées**
 | Classe d'origine | Règle | Catégorie | Type | Tickets |
 |---|---|---|---|---|
 | Active Directory | classe entière | `accounts` | non fourni | 41 |
-| Computer-Services | classe entière (douteux : la classe mélange des demandes variées) | `workstation` | non fourni | 34 |
+| Computer-Services | `printing` : imprimantes, copieurs, scanners, en anglais, espagnol et portugais (« printer », « copier », « fuser », « impresora », « imprimir »…) ; correction du 31 octobre 2026 | `printing` | non fourni | 32 |
+| Computer-Services | `computer_services_other` : tout le reste, douteux | `workstation` | non fourni | 2 |
 | O365 | classe entière | `messaging` | non fourni | 73 |
 | Software | classe entière | `software` | non fourni | 50 |
 | Fileservice | `fileshare_access` : « File Share Access », « Remove File Share Access » (accès à un partage) | `accounts` | `service_request` | 97 |
@@ -325,18 +326,21 @@ Le jeu n'a ni priorité ni type par défaut : seules les règles ci-dessus en do
 
 **Effet sur le jeu de test** (457 tickets) :
 
-| Catégorie | Avant (phase 1, 473 tickets) | Après (phase 2, 457 tickets) |
+| Catégorie | Phase 1 (473 tickets) | Phase 2 (457 tickets) | Après correction du 31 octobre (457 tickets) |
 |---|---|---|
-| `accounts` | 41 | 233 |
-| `messaging` | 73 | 73 |
-| `workstation` | 34 | 37 |
-| `software` | 50 | 53 |
-| `telephony` | 0 | 26 |
-| `network` | 0 | 13 |
-| `infrastructure` | 119 | 13 |
-| `security` | 0 | 9 |
-| aucune (écartés ou sans catégorie) | 156 | 0 (9 exclus) |
-| `printing`, `backup`, `procurement`, `admin_billing` | 0 | 0 |
+| `accounts` | 41 | 233 | 233 |
+| `messaging` | 73 | 73 | 73 |
+| `workstation` | 34 | 37 | 5 |
+| `software` | 50 | 53 | 53 |
+| `telephony` | 0 | 26 | 26 |
+| `network` | 0 | 13 | 13 |
+| `infrastructure` | 119 | 13 | 13 |
+| `security` | 0 | 9 | 9 |
+| aucune (écartés ou sans catégorie) | 156 | 0 (9 exclus) | 0 (9 exclus) |
+| `printing` | 0 | 0 | 32 |
+| `backup`, `procurement`, `admin_billing` | 0 | 0 | 0 |
+
+**Correction du 31 octobre 2026** : en préparant la relecture, 32 des 34 tickets de la classe « Computer-Services » se sont révélés être des demandes d'imprimantes ou de copieurs. La taxonomie les range en `printing` et non en `workstation`. La règle est corrigée ; aucune retraduction n'est nécessaire, car les étiquettes se recalculent depuis les étiquettes d'origine. Conséquence : `printing` s'évalue sur de vrais tickets, mais `workstation` n'a plus que 5 tickets de test.
 
 Limites du jeu de test : plus de la moitié (233 sur 457) est en `accounts`, surtout des **modèles de tickets quasi identiques** (créations de comptes et accès aux partages, qui ne diffèrent que par un nom). Les scores sur `accounts` seront donc optimistes. `printing`, `backup`, `procurement` et `admin_billing` n'ont **aucun** ticket de test : il faudra les couvrir avec les 50 tickets relus par le développeur et le générateur.
 
@@ -493,7 +497,7 @@ Le développeur choisira. Chaque option a ses limites.
 
 **Décidé le 23 octobre 2026** : option A (traduction complète en local, de nuit), faisceau de 4, 65 textes de langue indécidable écartés. La commande est décrite dans « Commande de nuit ».
 
-**Reste à décider, après traduction** : la répartition de l'entraînement (tirage au hasard, ou public limité par catégorie, voir « Répartition du corpus »), et l'ajustement de `config/generator.yaml` qui en découle. Les quatre catégories absentes du test externe (`printing`, `backup`, `procurement`, `admin_billing`) seront évaluées sur des tickets générés, résultat signalé comme optimiste (décision du 2026-10-23).
+**Reste à décider, après traduction** : la répartition de l'entraînement (tirage au hasard, ou public limité par catégorie, voir « Répartition du corpus »), et l'ajustement de `config/generator.yaml` qui en découle. Les trois catégories absentes du test externe (`backup`, `procurement`, `admin_billing`) seront évaluées sur des tickets générés, résultat signalé comme optimiste (décision du 2026-10-23, `printing` en est sortie après la correction du 31 octobre).
 
 ## Ce qui n'a pas été vérifié
 
