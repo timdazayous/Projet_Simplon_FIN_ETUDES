@@ -341,6 +341,8 @@ def test_translate_file_resumes_without_retranslating(tmp_path, monkeypatch):
 
     monkeypatch.setattr(translation, "OpusTranslator", FakeTranslator)
     monkeypatch.setattr(translation, "MemoryGuard", lambda mb: MemoryGuard(mb, lambda: 10_000))
+    # translate_file starts a ResourceMonitor; psutil is not installed in the CI environment.
+    monkeypatch.setattr(translation, "_psutil_sampler", lambda: lambda: Sample(4000, 700, 20, 10))
     source, target, report = tmp_path / "in.jsonl", tmp_path / "out.jsonl", tmp_path / "r.json"
     records = [
         {"id": f"T{i}", "language_source": "en", "subject": f"Subject {i}", "body": "Use VPN now"}

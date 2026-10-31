@@ -14,7 +14,7 @@ Cette page décrit comment les jeux publics retenus dans l'[inventaire](jeux-pub
 - Décisions du 23 octobre appliquées : seuls les tickets rattachés à une catégorie sont gardés ; `security` est plafonné à 8 % ; les classes tasksource « Fileservice », « EOL » et « Support general » sont découpées par règles de mots-clés ; les 65 textes de langue indécidable sont écartés ; un glossaire protège les termes techniques pendant la traduction.
 - Sur CPU, avec 4 threads, la traduction de 50 tickets prend **de 50 à 61 secondes** (environ une seconde par ticket). L'extrapolation donne **environ 3 h** au faisceau de 4 pour les quelque 8 940 tickets à traduire (environ 1 h 45 pour l'ancien tirage de 3 600). C'est bien moins que les « quelques heures » estimées dans l'inventaire.
 - Le poste n'est pas saturé : le processus utilise environ un tiers du processeur et au plus 1,8 Go de mémoire.
-- Le corpus public réel est très **déséquilibré** (rien pour `procurement` et `admin_billing`, très peu pour `printing`, `backup`, `telephony`, `messaging`) : le générateur doit produire environ **3 100 à 3 700 messages** au lieu des 2 400 prévus (voir « Répartition du corpus »).
+- Le corpus public réel est très **déséquilibré** (rien pour `procurement` et `admin_billing`, très peu pour `printing`, `backup`, `telephony`, `messaging`) : le générateur doit produire **3 118 messages** au lieu des 2 400 prévus (voir « Répartition du corpus »).
 
 ## Dépendances et installation
 
@@ -371,7 +371,7 @@ Avant (phase 1, sur les 3 600 tirés sans filtre) : `security` 911, `software` 7
 
 **Cas douteux et limites** :
 
-- **Le tirage de 3 600 coupe aussi les catégories rares** : sur les 7 682 tickets disponibles, le tirage garde environ 47 % de chaque catégorie, y compris `accounts` (137 devient 70), `messaging` (33 devient 17), `printing` (12 devient 4) et `telephony` (7 devient 2), alors qu'on manque d'exemples. Voir la décision proposée dans la section suivante.
+- **Le tirage de 3 600 coupe aussi les catégories rares** : sur les 7 682 tickets disponibles, le tirage garde environ 47 % de chaque catégorie, y compris `accounts` (137 devient 70), `messaging` (33 devient 17), `printing` (12 devient 4) et `telephony` (7 devient 2), alors qu'on manque d'exemples. Cette limite a été écartée le 31 octobre 2026 au profit d'une limite par catégorie (voir « Répartition du corpus »).
 - **Déséquilibre persistant** : `printing`, `backup`, `telephony`, `messaging` et `accounts` ont très peu d'exemples réels, `procurement` et `admin_billing` aucun. Le classifieur dépend du générateur pour ces catégories.
 - **493 propositions marquées douteuses** (sur les 3 600 tirés) : surtout les mots-clés très généraux de pannes (Outage, Disruption, Recovery), rattachés à `infrastructure` par défaut.
 - **Ordre des règles** : un ticket avec les mots-clés Security et Backup est classé `security` (la première règle l'emporte), alors que `backup` serait parfois plus juste.
@@ -381,61 +381,39 @@ Les 800 cas de decisionmodelhub n'ont pas de catégorie : leur étiquette (`expe
 
 ## Répartition du corpus
 
-Objectif du plan : environ **6 000 messages d'entraînement** (60 % publics traduits, 40 % générés), plus un test externe et un complément pour l'urgence. Les volumes ci-dessous sont **réels**, mesurés le 23 octobre 2026 après filtrage et plafonnement. `config/generator.yaml` n'a **pas** été modifié : cette section présente le besoin, le développeur décidera de l'ajustement.
+Objectif du plan : environ **6 000 messages d'entraînement et de validation**, plus un test externe et un complément pour l'urgence. **Décision du développeur du 31 octobre 2026 (Issue #46)** : le public est limité par catégorie à sa cible, `public = min(disponible, cible)`, et le générateur comble le reste. Elle est **mise en œuvre** par `scripts/assemble_corpus.py` ; la méthode complète, les volumes par jeu, la complétude des étiquettes et les limites sont dans [Assemblage du corpus de classification](corpus.md).
 
 ### Ce que le corpus public fournit
 
 | Jeu | Rôle | Volume |
 |---|---|---|
-| Tobi-Bueck | Entraînement | 7 682 disponibles, **3 600 tirés** (plafond de configuration) |
+| Tobi-Bueck | Entraînement et validation | 7 682 disponibles, **2 882 gardés** (limite par catégorie) |
 | tasksource | Test externe | 457 tickets (jamais dans l'entraînement) |
-| decisionmodelhub | Revue de priorité (urgent ou non) | 800 cas, sans catégorie |
+| decisionmodelhub | Revue de priorité (urgent ou non) | 800 cas, sans catégorie, hors du corpus de classification |
 
-Détail par catégorie : voir les deux tableaux des sections précédentes.
+### Cible, public gardé et besoin du générateur
 
-### Besoin du générateur par catégorie
+La cible de chaque catégorie suit les poids du générateur (`free_text.categories` de `config/generator.yaml`, 102 au total) : par exemple 706 messages pour `messaging` (12 sur 102 de 6 000). Les étiquettes ont été **recalculées** avec les règles actuelles (PR #47) : les 7 682 tickets se répartissent comme dans le tableau ci-dessous, et le besoin du générateur est la cible moins le public gardé.
 
-La cible est répartie comme les poids du générateur (`config/generator.yaml`, 102 au total) : par exemple 706 messages pour `messaging` (12 sur 102 de 6 000). Le besoin est la cible moins ce que fournit le corpus public. Le générateur produit aujourd'hui 2 400 messages de texte libre, avec ces mêmes poids (colonne « Actuel »).
-
-| Catégorie | Cible sur 6 000 | Public tiré (3 600) | Besoin du générateur | Actuel (2 400) |
+| Catégorie | Cible sur 6 000 | Public disponible | Public gardé | Besoin du générateur |
 |---|---|---|---|---|
-| `network` | 588 | 938 | 0 (public en excès de 350) | 235 |
-| `messaging` | 706 | 17 | 689 | 282 |
-| `workstation` | 706 | 268 | 438 | 282 |
-| `software` | 588 | 1 358 | 0 (public en excès de 770) | 235 |
-| `accounts` | 706 | 70 | 636 | 282 |
-| `printing` | 412 | 4 | 408 | 165 |
-| `infrastructure` | 471 | 629 | 0 (public en excès de 158) | 188 |
-| `backup` | 353 | 7 | 346 | 141 |
-| `security` | 471 | 307 | 164 | 188 |
-| `telephony` | 412 | 2 | 410 | 165 |
-| `procurement` | 294 | 0 | 294 | 118 |
-| `admin_billing` | 294 | 0 | 294 | 118 |
-| **Total** | **6 000** | **3 600** | **3 678** | **2 400** |
+| `network` | 588 | 1 979 | 588 | 0 |
+| `messaging` | 706 | 33 | 33 | 673 |
+| `workstation` | 706 | 568 | 568 | 138 |
+| `software` | 588 | 2 977 | 588 | 0 |
+| `accounts` | 706 | 137 | 137 | 569 |
+| `printing` | 412 | 12 | 12 | 400 |
+| `infrastructure` | 471 | 1 347 | 471 | 0 |
+| `backup` | 353 | 8 | 8 | 345 |
+| `security` | 470 | 614 | 470 | 0 |
+| `telephony` | 412 | 7 | 7 | 405 |
+| `procurement` | 294 | 0 | 0 | 294 |
+| `admin_billing` | 294 | 0 | 0 | 294 |
+| **Total** | **6 000** | **7 682** | **2 882** | **3 118** |
 
-Avec le tirage actuel, le besoin total (3 678) dépasse l'écart « 6 000 moins 3 600 » (2 400), parce que `software`, `network` et `infrastructure` sont en excès dans le public : le corpus final compterait **7 278 messages**, dont **51 % générés** (au lieu de 40 %), et resterait déséquilibré vers `software`. Les besoins sont des totaux par catégorie : `generator.yaml` règle les poids **par canal**, pas par catégorie, donc le réglage exact reste à faire.
+Le corpus fait exactement 6 000 messages, équilibré par catégorie, mais **52 % générés** : plus de la moitié du corpus est synthétique, ce qui limite la valeur du « corpus public traduit » devant le jury. Les chiffres de la première version de cette page (2 883 publics, 3 118 générés) venaient d'un arrondi par excès de deux cibles (471 pour `infrastructure` et pour `security`, soit 6 001 messages) ; la méthode du plus grand reste donne 470 pour `security`. Alternative écartée : un tirage au hasard de 3 600 tickets publics, qui laissait `software` à 1 358 messages et portait le corpus à 7 278 messages dont 51 % générés.
 
-### Décision proposée : limiter le public par catégorie
-
-Plutôt qu'un tirage au hasard de 3 600, on pourrait **garder tout le public rare et limiter chaque catégorie à sa cible** (`public = min(disponible, cible)`). Chiffres calculés sur les 7 682 tickets disponibles :
-
-| Catégorie | Public gardé | Besoin du générateur |
-|---|---|---|
-| `network` | 588 | 0 |
-| `messaging` | 33 | 673 |
-| `workstation` | 568 | 138 |
-| `software` | 588 | 0 |
-| `accounts` | 137 | 569 |
-| `printing` | 12 | 400 |
-| `infrastructure` | 471 | 0 |
-| `backup` | 8 | 345 |
-| `security` | 471 | 0 |
-| `telephony` | 7 | 405 |
-| `procurement` | 0 | 294 |
-| `admin_billing` | 0 | 294 |
-| **Total** | **2 883** | **3 118** |
-
-Le corpus fait alors 6 001 messages, parfaitement équilibré, mais **52 % générés** : plus de la moitié du corpus d'entraînement serait synthétique, ce qui limite la valeur du « corpus public traduit » devant le jury. Cette option n'est **pas mise en œuvre** (elle demande une petite évolution du script) : à décider avec le développeur. Dans les deux cas, la part générée augmente nettement, comme prévu.
+Les besoins sont des totaux par catégorie, alors que `generator.yaml` règle les poids **par canal**. Le générateur sait donc produire un nombre imposé de messages par catégorie (voir [Générateur](../generateur.md)).
 
 ## Commande de nuit
 
@@ -497,7 +475,7 @@ Le développeur choisira. Chaque option a ses limites.
 
 **Décidé le 23 octobre 2026** : option A (traduction complète en local, de nuit), faisceau de 4, 65 textes de langue indécidable écartés. La commande est décrite dans « Commande de nuit ».
 
-**Reste à décider, après traduction** : la répartition de l'entraînement (tirage au hasard, ou public limité par catégorie, voir « Répartition du corpus »), et l'ajustement de `config/generator.yaml` qui en découle. Les trois catégories absentes du test externe (`backup`, `procurement`, `admin_billing`) seront évaluées sur des tickets générés, résultat signalé comme optimiste (décision du 2026-10-23, `printing` en est sortie après la correction du 31 octobre).
+**Décidé le 31 octobre 2026, après traduction** : le public est limité par catégorie à sa cible (voir « Répartition du corpus »), et le générateur produit le besoin par catégorie (Issue #46, [Assemblage du corpus](corpus.md)). Les trois catégories absentes du test externe (`backup`, `procurement`, `admin_billing`) sont évaluées sur des tickets générés, résultat signalé comme optimiste (décision du 2026-10-23, `printing` en est sortie après la correction du 31 octobre).
 
 ## Ce qui n'a pas été vérifié
 

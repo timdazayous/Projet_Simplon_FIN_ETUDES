@@ -610,6 +610,240 @@ TICKET_TEMPLATES: dict[str, dict[str, list[tuple[str, str]]]] = {
     },
 }
 
+# Additional phrasings (Issue #46). The corpus asks the generator for hundreds of messages in
+# the categories that the public datasets barely cover (messaging, accounts, printing, backup,
+# telephony, procurement, admin_billing, workstation): with 6 to 8 templates per category the same
+# sentences came back about thirty times each. Four more per category, same style and slots.
+_EXTRA_TEMPLATES: dict[str, dict[str, list[tuple[str, str]]]] = {
+    "messaging": {
+        "incident": [
+            (
+                "Calendrier Outlook qui ne se synchronise plus",
+                "Les rendez-vous de mon agenda n'apparaissent plus sur mon téléphone {since}, "
+                "alors qu'ils sont bien visibles sur mon {device}.",
+            ),
+            (
+                "Mails reçus en retard",
+                "Plusieurs mails arrivent avec des heures de retard {since}. Un client nous a "
+                "écrit hier et nous n'avons rien vu avant ce matin.",
+            ),
+        ],
+        "service_request": [
+            (
+                "Ajout d'une adresse alias",
+                "Pouvez-vous ajouter l'alias « facturation » à la boîte de {colleague} ?Les "
+                "mails envoyés à cette adresse doivent lui arriver directement.",
+            ),
+        ],
+        "information": [
+            (
+                "Archivage des anciens mails",
+                "Comment archiver les mails de plus de deux ans sans les perdre ? Ma boîte "
+                "grossit et {colleague} me dit qu'il existe une solution.",
+            ),
+        ],
+    },
+    "accounts": {
+        "incident": [
+            (
+                "Mot de passe refusé après le changement",
+                "J'ai changé mon mot de passe hier comme demandé, mais {app} me répond "
+                "« identifiants incorrects » {since}.",
+            ),
+            (
+                "Session Windows qui ne s'ouvre pas",
+                "À l'ouverture de session, mon {device} affiche « le profil utilisateur ne peut "
+                "pas être chargé ». Je ne peux plus travailler {since}.",
+            ),
+        ],
+        "service_request": [
+            (
+                "Droits supplémentaires sur le dossier {share}",
+                "{colleague} reprend le suivi du service et a besoin d'un accès en modification "
+                "au dossier {share}. Merci de lui donner les droits.",
+            ),
+        ],
+        "information": [
+            (
+                "Qui peut créer un compte ?",
+                "À qui doit-on s'adresser pour demander un compte invité pour un prestataire "
+                "externe, et quel délai faut-il prévoir ?",
+            ),
+        ],
+    },
+    "printing": {
+        "incident": [
+            (
+                "Bourrage papier répété",
+                "{printer} se bloque avec un bourrage papier à chaque impression de plus de "
+                "dix pages {since}. Nous avons ouvert tous les capots, sans trouver de papier.",
+            ),
+            (
+                "Impression qui sort en anglais ou illisible",
+                "Depuis la mise à jour de la nuit, les documents envoyés sur {printer} sortent "
+                "avec des caractères étranges au lieu du texte.",
+            ),
+        ],
+        "service_request": [
+            (
+                "Ajout de mon badge sur la multifonction",
+                "Pouvez-vous enregistrer le badge de {colleague} sur {printer} pour qu'il puisse "
+                "récupérer ses impressions sécurisées ?",
+            ),
+        ],
+        "information": [
+            (
+                "Imprimer depuis un mobile",
+                "Est-il possible d'imprimer depuis nos téléphones sur {printer} ? Nos "
+                "commerciaux en ont besoin en déplacement.",
+            ),
+        ],
+    },
+    "backup": {
+        "incident": [
+            (
+                "Alerte d'espace insuffisant sur la sauvegarde",
+                "Un message nous prévient que l'espace de sauvegarde de {host} est presque "
+                "plein. Faut-il craindre que les prochaines sauvegardes échouent ?",
+            ),
+            (
+                "Sauvegarde anormalement longue",
+                "La sauvegarde de {host} dure plus de douze heures {since} et déborde sur la "
+                "journée de travail. Les postes ralentissent le matin.",
+            ),
+        ],
+        "service_request": [
+            (
+                "Test de restauration annuel",
+                "Notre assureur nous demande une preuve de restauration. Pouvez-vous planifier "
+                "un test de restauration de {host} et nous envoyer le compte rendu ?",
+            ),
+        ],
+        "information": [
+            (
+                "Sauvegarde des postes de travail",
+                "Les {device}s de l'équipe sont-ils sauvegardés, ou seulement les serveurs ? Je "
+                "voudrais savoir où enregistrer les documents importants.",
+            ),
+        ],
+    },
+    "telephony": {
+        "incident": [
+            (
+                "Messagerie vocale inaccessible",
+                "Je n'arrive plus à écouter mes messages vocaux depuis mon poste {since} : le "
+                "numéro de la messagerie sonne occupé.",
+            ),
+            (
+                "Casque sans fil déconnecté",
+                "Le casque de {colleague} se déconnecte du téléphone toutes les dix minutes "
+                "{since}, au milieu des appels clients.",
+            ),
+        ],
+        "service_request": [
+            (
+                "Création d'un groupe d'appel",
+                "Nous voudrions que les appels du numéro de la hotline sonnent en même temps "
+                "chez {n} personnes. Pouvez-vous créer le groupe d'appel ?",
+            ),
+        ],
+        "information": [
+            (
+                "Appels vers l'étranger",
+                "Est-il possible d'appeler l'étranger depuis les postes fixes, et à quel tarif ? "
+                "Un nouveau fournisseur est installé à Lisbonne.",
+            ),
+        ],
+    },
+    "procurement": {
+        "incident": [
+            (
+                "Mauvaise référence livrée",
+                "Nous avons reçu {item}, mais ce n'est pas le modèle commandé. Merci de "
+                "demander un échange au fournisseur.",
+            ),
+            (
+                "Livraison jamais arrivée",
+                "Le colis contenant {item} devait arriver la semaine dernière et le suivi ne "
+                "bouge plus. Pouvez-vous relancer le transporteur ?",
+            ),
+        ],
+        "service_request": [
+            (
+                "Renouvellement de licences",
+                "Nos licences {app} arrivent à échéance. Pouvez-vous nous envoyer une "
+                "proposition de renouvellement pour {n} utilisateurs ?",
+            ),
+        ],
+        "information": [
+            (
+                "Choix entre deux modèles",
+                "Quelle différence y a-t-il entre les deux modèles de {item} que vous nous avez "
+                "proposés ? Nous hésitons sur le prix.",
+            ),
+        ],
+    },
+    "admin_billing": {
+        "incident": [
+            (
+                "Prélèvement non prévu",
+                "Un prélèvement de {amount} est apparu sur notre compte le mois dernier sans "
+                "facture correspondante. Pouvez-vous vérifier ?",
+            ),
+            (
+                "Facture au nom d'une ancienne société",
+                "La facture {invoice} est libellée avec notre ancienne raison sociale, ce qui "
+                "bloque sa comptabilisation. Merci de la rééditer.",
+            ),
+        ],
+        "service_request": [
+            (
+                "Changement de coordonnées bancaires",
+                "Nous avons changé de banque. Merci de mettre à jour notre IBAN pour le contrat "
+                "{contract} avant le prochain prélèvement.",
+            ),
+        ],
+        "information": [
+            (
+                "Modalités de paiement",
+                "Quels sont les moyens de paiement acceptés pour régler la facture {invoice} et "
+                "dans quel délai doit-elle être payée ?",
+            ),
+        ],
+    },
+    "workstation": {
+        "incident": [
+            (
+                "Batterie qui ne tient plus",
+                "La batterie de mon {device} se vide en une heure {since}, même sans rien "
+                "lancer. Je dois le garder branché en permanence.",
+            ),
+            (
+                "Impossible d'installer les mises à jour",
+                "Mon {device} échoue à chaque mise à jour {os} avec une erreur de code et "
+                "redémarre en boucle {since}.",
+            ),
+        ],
+        "service_request": [
+            (
+                "Ajout d'un deuxième écran",
+                "Pouvez-vous brancher et configurer un deuxième écran sur le poste de "
+                "{colleague} ? Il travaille sur de gros tableaux.",
+            ),
+        ],
+        "information": [
+            (
+                "Mémoire vive du poste",
+                "Combien de mémoire vive y a-t-il dans mon {device} et peut-on en ajouter ? "
+                "{app} est de plus en plus lent.",
+            ),
+        ],
+    },
+}
+for _category, _by_type in _EXTRA_TEMPLATES.items():
+    for _ticket_type, _templates in _by_type.items():
+        TICKET_TEMPLATES[_category][_ticket_type].extend(_templates)
+
 # --------------------------------------------------------------------------- phrasing
 
 GREETINGS = {

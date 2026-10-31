@@ -174,6 +174,28 @@ def _choose_channel_and_category(rng: random.Random, cfg: dict[str, Any]) -> tup
     return channel, _weighted(rng, weights), wrong
 
 
+def _channel_for_category(
+    rng: random.Random, cfg: dict[str, Any], category: str
+) -> tuple[str, bool]:
+    """Channel of a message whose category is already fixed (corpus assembly).
+
+    The natural channels of a category are those that list it in ``channel_affinity``; a category
+    attached to no channel arrives on the general channels. ``wrong_channel_rate`` sends a
+    message to an unexpected channel, exactly as in the free draw.
+    """
+    free = cfg["free_text"]
+    affinity: dict[str, list[str]] = free["channel_affinity"]
+    channels: dict[str, float] = free["channels"]
+    natural = {c for c in channels if category in affinity.get(c, [])}
+    if not natural:
+        natural = {c for c in channels if c not in affinity}
+    wrong = rng.random() < free["wrong_channel_rate"]
+    pool = set(channels) - natural if wrong else natural
+    if not pool:
+        pool, wrong = natural, False
+    return _weighted(rng, {c: w for c, w in channels.items() if c in pool}), wrong
+
+
 def _compose_body(
     rng: random.Random,
     cfg: dict[str, Any],
@@ -219,14 +241,39 @@ def _compose_body(
 
 
 def generate_tickets(
-    cfg: dict[str, Any], taxonomy: Taxonomy, count: int, seed: int, clients: list[Client]
+    cfg: dict[str, Any],
+    taxonomy: Taxonomy,
+    count: int,
+    seed: int,
+    clients: list[Client],
+    *,
+    category_counts: dict[str, int] | None = None,
+    id_prefix: str = "GEN-T",
 ) -> list[dict[str, Any]]:
-    """Generate ``count`` free-text tickets (e-mails, portal forms, internal messages)."""
+    """Generate free-text tickets (e-mails, portal forms, internal messages).
+
+    By default ``count`` tickets are drawn with the category weights of the configuration.
+    With ``category_counts`` (category -> exact number), the categories are imposed instead and
+    ``count`` is ignored: this is how the corpus assembly asks for the missing part of each
+    category (see ``src/data/corpus.py``).
+    """
     free = cfg["free_text"]
     rng = random.Random(f"{seed}:tickets")
     records: list[dict[str, Any]] = []
-    for _ in range(count):
-        channel, category, wrong = _choose_channel_and_category(rng, cfg)
+    forced: list[str] | None = None
+    if category_counts is not None:
+        unknown = set(category_counts) - set(taxonomy.categories)
+        if unknown:
+            raise ValueError(f"Unknown category (not in taxonomy.yaml): {sorted(unknown)}")
+        forced = [c for c in sorted(category_counts) for _ in range(category_counts[c])]
+        rng.shuffle(forced)
+        count = len(forced)
+    for index in range(count):
+        if forced is None:
+            channel, category, wrong = _choose_channel_and_category(rng, cfg)
+        else:
+            category = forced[index]
+            channel, wrong = _channel_for_category(rng, cfg, category)
         ticket_type = _weighted(rng, free["types"])
         linked = channel != "internal" and rng.random() < free["linked_ticket"]["rate"]
         escalated = linked and rng.random() < free["linked_ticket"]["escalated_share"]
@@ -294,7 +341,7 @@ def generate_tickets(
                 "origin": "synthetic",
             }
         )
-    return _number(records, "GEN-T")
+    return _number(records, id_prefix)
 
 
 # --------------------------------------------------------------------------- alerts
@@ -423,8 +470,14 @@ def generate(
     n_tickets: int | None = None,
     n_alerts: int | None = None,
     taxonomy: Taxonomy | None = None,
+    category_counts: dict[str, int] | None = None,
+    ticket_id_prefix: str = "GEN-T",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Generate (tickets, alerts). Arguments override the configuration file."""
+    """Generate (tickets, alerts). Arguments override the configuration file.
+
+    ``category_counts`` imposes the exact number of tickets per category (``n_tickets`` is then
+    ignored); the alerts do not depend on it.
+    """
     cfg = load_config(config_path)
     taxonomy = taxonomy or load_taxonomy()
     validate_config(cfg, taxonomy)
@@ -436,7 +489,15 @@ def generate(
         cfg["clients"]["count"],
         cfg["clients"]["users_per_client"],
     )
-    tickets = generate_tickets(cfg, taxonomy, n_tickets, seed, clients)
+    tickets = generate_tickets(
+        cfg,
+        taxonomy,
+        n_tickets,
+        seed,
+        clients,
+        category_counts=category_counts,
+        id_prefix=ticket_id_prefix,
+    )
     alerts = generate_alerts(cfg, taxonomy, n_alerts, seed, clients)
     return tickets, alerts
 

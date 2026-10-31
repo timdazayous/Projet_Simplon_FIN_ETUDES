@@ -12,7 +12,7 @@ Le générateur fabrique des **messages fictifs** pour combler les manques des j
 - des **données personnelles et des secrets fictifs**, pour tester la pseudonymisation et le masquage des secrets ;
 - le style d'un MSP français : formules de politesse, outils, noms de clients inventés.
 
-Selon la [répartition du corpus](donnees/jeux-publics.md), le générateur fournit environ 40 % du texte libre d'entraînement (environ 2 400 messages) et environ 1 500 alertes de supervision.
+Selon la [répartition du corpus](donnees/corpus.md) (décision du 31 octobre 2026), le générateur fournit **3 118 des 6 000 messages** d'entraînement et de validation (52 %), le public traduit étant limité par catégorie à sa cible, ainsi que 180 messages de test et environ 1 500 alertes de supervision. Le plan initial prévoyait 2 400 messages (40 %) : les catégories rares du public (`messaging`, `accounts`, `printing`, `backup`, `telephony`, `procurement`, `admin_billing`) exigent davantage.
 
 ## Principes de fonctionnement
 
@@ -44,7 +44,10 @@ Tous les paramètres sont dans `config/generator.yaml`, avec des commentaires. L
 | Paramètre | Valeur par défaut | Rôle |
 |---|---|---|
 | `seed` | 42 | Graine des tirages aléatoires |
-| `volumes.free_text` | 2 400 | Nombre de messages de texte libre |
+| `volumes.free_text` | 2 400 | Nombre de messages de texte libre **du script seul** (`generate_synthetic.py`) ; l'assemblage du corpus impose le besoin par catégorie |
+| `corpus.total` | 6 000 | Messages d'entraînement et de validation (public + généré) |
+| `corpus.validation_share` | 0,15 | Part de la validation, stratifiée par catégorie |
+| `corpus.test_generated` | graine 4 242, 60 par catégorie (`backup`, `procurement`, `admin_billing`) | Test généré, sans vrai ticket de test pour ces catégories |
 | `volumes.alerts` | 1 500 | Nombre d'alertes de supervision |
 | `clients.count` | 60 | Nombre de clients fictifs (une soixantaine de PME) |
 | `free_text.channels` | support 25, portail 10, administratif 5, interne 5 | Canaux d'arrivée du texte libre |
@@ -104,6 +107,14 @@ Générer un petit jeu avec une autre graine, dans un autre dossier :
 uv run python scripts/generate_synthetic.py --seed 7 --tickets 100 --alerts 50 --out-dir data/raw/essai
 ```
 
+Assembler le corpus de classification (le générateur produit alors **le nombre imposé de messages par catégorie**, voir [Assemblage du corpus](donnees/corpus.md)) :
+
+```bash
+uv run python scripts/assemble_corpus.py
+```
+
+Par programme, `generate(category_counts={"backup": 345, ...})` impose le nombre exact de messages par catégorie (le paramètre `n_tickets` est alors ignoré). Le canal de chaque message est choisi selon la catégorie : canal administratif pour `admin_billing` et `procurement`, canaux généraux pour les autres, avec la même part de « mauvais canal » (10 %). Les alertes ne dépendent pas de ce réglage.
+
 Lancer les tests du générateur :
 
 ```bash
@@ -114,8 +125,8 @@ La génération par défaut (2 400 textes et 1 500 alertes) prend moins d'une se
 
 ## Limites
 
-- **Risque d'apprentissage du style du générateur.** Les textes sont produits par un nombre fini de modèles de phrases. Un classifieur entraîné sur beaucoup de données générées peut apprendre ces formulations plutôt que le sens, et obtenir de bons scores sur des textes générés sans bien fonctionner sur des textes réels. **Parade** : le générateur ne fournit que 40 % du texte libre, et l'évaluation du modèle se fait sur des **données réelles publiques** (test externe tasksource traduit, test de référence relu par le développeur), jamais sur des données générées.
-- Variété limitée : chaque combinaison (catégorie, type) repose sur deux ou trois modèles de phrases. Les paramètres aléatoires (noms, machines, durées, ton) apportent de la variation, mais pas la richesse d'un vrai texte.
+- **Risque d'apprentissage du style du générateur.** Les textes sont produits par un nombre fini de modèles de phrases. Un classifieur entraîné sur beaucoup de données générées peut apprendre ces formulations plutôt que le sens, et obtenir de bons scores sur des textes générés sans bien fonctionner sur des textes réels. **Parade** : l'évaluation du modèle se fait d'abord sur des **données réelles publiques** (test externe tasksource traduit, test de référence relu par le développeur). La part générée est toutefois de 52 % du corpus d'entraînement et de validation, et trois catégories (`backup`, `procurement`, `admin_billing`) n'ont qu'un **test généré**, optimiste car ses modèles de phrases sont partagés avec l'entraînement (voir [Assemblage du corpus](donnees/corpus.md)).
+- Variété limitée : chaque combinaison (catégorie, type) repose sur deux à quatre modèles de phrases (quatre modèles ajoutés en octobre 2026 pour les huit catégories les plus demandées, voir l'Issue #46). Mesure sur les 3 118 messages générés du corpus : 99,8 % de textes distincts, mais **140 objets de message distincts**, soit environ 22 messages par modèle d'objet (110 et 28 avant l'enrichissement). Les paramètres aléatoires (noms, machines, durées, ton) apportent de la variation, mais pas la richesse d'un vrai texte.
 - Catégories et priorités tirées **indépendamment du contenu réel** : le texte est cohérent avec ses étiquettes par construction, ce qui rend la tâche plus facile qu'en réalité (pas de message ambigu, hormis les cas « mauvais canal »).
 - Les alertes sont en anglais pour Zabbix et Centreon (comme les outils), avec quelques contrôles en français ; Meraki n'est pas généré (niveaux de gravité encore à relever).
 - Les numéros d'identifiant de ticket lié (`#12345`) sont fictifs et ne renvoient à aucun ticket réel.
