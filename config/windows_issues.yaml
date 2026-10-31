@@ -1,0 +1,46 @@
+# Problèmes connus des mises à jour Windows : scraping des pages publiques « Windows release health »
+# de Microsoft Learn, en français (Issue #45, source de scraping). Voir docs/donnees/windows-known-issues.md.
+#
+# Conditions d'utilisation de Microsoft Learn : usage personnel et non commercial ; copie, publication et
+# redistribution interdites. Les données restent dans data/raw/ (ignoré par Git), jamais dans le dépôt.
+
+base_url: https://learn.microsoft.com
+# Le User-Agent identifie le projet et son dépôt, pour que la source puisse nous joindre.
+user_agent: "projet-simplon-triage-msp/0.1 (projet pedagogique de fin de formation; https://github.com/timdazayous/Projet_Simplon_FIN_ETUDES)"
+# Respect de la source : au plus une requête toutes les 2 secondes (ne pas descendre en dessous).
+min_interval_seconds: 2.0
+timeout_seconds: 30
+# Nouvelles tentatives pour les erreurs passagères (délai, 429, 5xx), avec attente croissante.
+max_retries: 3
+backoff_seconds: 5.0
+# Au bout de ce nombre de pages consécutives en échec, on arrête.
+max_consecutive_failures: 3
+output_directory: data/raw/windows_known_issues # dossier ignoré par Git
+
+# Pages suivies : seulement celles dont l'existence a été vérifiée le 2026-10-31 (HTTP 200).
+# slug : identifiant stable (clé des enregistrements) ; label : version de Windows affichée ;
+# path : chemin sous base_url.
+pages:
+  - slug: windows-10-22h2
+    label: Windows 10, version 22H2
+    path: /fr-fr/windows/release-health/status-windows-10-22h2
+  - slug: windows-11-23h2
+    label: Windows 11, version 23H2
+    path: /fr-fr/windows/release-health/status-windows-11-23h2
+  - slug: windows-11-24h2
+    label: Windows 11, version 24H2
+    path: /fr-fr/windows/release-health/status-windows-11-24h2
+  - slug: windows-11-25h2
+    label: Windows 11, version 25H2
+    path: /fr-fr/windows/release-health/status-windows-11-25h2
+  # Windows Server 2019 n'a pas de page propre (status-windows-server-2019 répond 404) :
+  # ses problèmes sont publiés sur la page commune avec Windows 10, version 1809.
+  - slug: windows-10-1809-server-2019
+    label: Windows 10, version 1809 et Windows Server 2019
+    path: /fr-fr/windows/release-health/status-windows-10-1809-and-windows-server-2019
+  - slug: windows-server-2022
+    label: Windows Server 2022
+    path: /fr-fr/windows/release-health/status-windows-server-2022
+  - slug: windows-server-2025
+    label: Windows Server 2025
+    path: /fr-fr/windows/release-health/status-windows-server-2025
