@@ -1,0 +1,65 @@
+{
+  "$ref": "https://www.cert.ssi.gouv.fr/openapi.json",
+  "affected_systems": [
+    {
+      "description": "Firefox ESR versions antérieures à 128.8.1",
+      "product": {
+        "name": "Firefox ESR",
+        "vendor": {
+          "name": "Mozilla",
+          "scada": false
+        }
+      }
+    },
+    {
+      "description": "Firefox versions antérieures à 136.0.4",
+      "product": {
+        "name": "Firefox",
+        "vendor": {
+          "name": "Mozilla",
+          "scada": false
+        }
+      }
+    },
+    {
+      "description": "Firefox ESR versions antérieures à 115.21.1",
+      "product": {
+        "name": "Firefox ESR",
+        "vendor": {
+          "name": "Mozilla",
+          "scada": false
+        }
+      }
+    }
+  ],
+  "affected_systems_content": "",
+  "content": "## Solutions\n\nSe référer au bulletin de sécurité de l'éditeur pour l'obtention des correctifs (cf. section Documentation).",
+  "cves": [
+    {
+      "name": "CVE-2025-2857",
+      "url": "https://www.cve.org/CVERecord?id=CVE-2025-2857"
+    }
+  ],
+  "links": [],
+  "reference": "CERTFR-2025-AVI-0251",
+  "revisions": [
+    {
+      "description": "Version initiale",
+      "revision_date": "2025-03-28T00:00:00.000000"
+    }
+  ],
+  "risks": [
+    {
+      "description": "Contournement de la politique de sécurité"
+    }
+  ],
+  "summary": "Une vulnérabilité a été découverte dans Mozilla Firefox. Elle permet à un attaquant de provoquer un contournement de la politique de sécurité.\n",
+  "title": "Vulnérabilité dans Mozilla Firefox",
+  "vendor_advisories": [
+    {
+      "published_at": "2025-03-27",
+      "title": "Bulletin de sécurité Mozilla mfsa2025-19",
+      "url": "https://www.mozilla.org/en-US/security/advisories/mfsa2025-19/"
+    }
+  ]
+}
