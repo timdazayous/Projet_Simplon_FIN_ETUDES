@@ -200,11 +200,22 @@ def test_unknown_status_is_an_explicit_error():
 
 
 def test_pacific_time_to_utc_around_the_daylight_saving_changes():
-    assert pacific_to_utc(datetime(2026, 3, 8, 1, 59)).hour == 9  # still PST (UTC-8)
-    assert pacific_to_utc(datetime(2026, 3, 8, 2, 0)).hour == 9  # PDT (UTC-7): 02:00 -> 09:00
-    assert pacific_to_utc(datetime(2026, 11, 1, 1, 59)).hour == 8  # still PDT
-    assert pacific_to_utc(datetime(2026, 11, 1, 2, 0)).hour == 10  # PST again
+    assert (
+        pacific_to_utc(datetime(2026, 3, 8, 1, 59)).isoformat() == "2026-03-08T09:59:00+00:00"
+    )  # PST
+    assert (
+        pacific_to_utc(datetime(2026, 3, 8, 3, 0)).isoformat() == "2026-03-08T10:00:00+00:00"
+    )  # PDT
+    assert pacific_to_utc(datetime(2026, 11, 1, 0, 59)).isoformat() == "2026-11-01T07:59:00+00:00"
+    assert (
+        pacific_to_utc(datetime(2026, 11, 1, 2, 0)).isoformat() == "2026-11-01T10:00:00+00:00"
+    )  # PST
     assert pacific_to_utc(datetime(2026, 7, 1, 12, 0)).isoformat() == "2026-07-01T19:00:00+00:00"
+
+
+def test_ambiguous_autumn_hour_keeps_the_first_occurrence():
+    # 01:30 happens twice on 2026-11-01; fold=0 (default) is the first one, still PDT (UTC-7).
+    assert pacific_to_utc(datetime(2026, 11, 1, 1, 30)).isoformat() == "2026-11-01T08:30:00+00:00"
 
 
 def test_both_date_time_formats_and_bad_ones():
@@ -625,10 +636,29 @@ def test_page_structure_change_stops_the_run_with_a_dedicated_status(tmp_path):
     )
 
 
-def test_empty_page_is_listed_in_the_report(tmp_path):
-    config = make_config(tmp_path, pages=(PAGE,))
-    report = run(config, Site({PAGE.path: build_page([])}))
-    assert report.pages_empty == ["fictive-a"] and report.issues_seen == 0
+def test_isolated_empty_page_is_accepted_and_reported(tmp_path):
+    config = make_config(tmp_path)
+    pages = {PAGE.path: build_page([]), "/fr-fr/release-health/status-fictive-b": build_page()}
+    report = run(config, Site(pages))
+    assert report.pages_empty == ["fictive-a"] and report.issues_seen == 3
+    assert report.status == "ok"
+
+
+def test_all_downloaded_pages_empty_is_a_structure_change(tmp_path):
+    config = make_config(tmp_path)
+    run(config, Site(two_pages()))  # existing output
+    before = (config.output_directory / "issues.jsonl").read_text("utf-8")
+    (config.output_directory / "state.json").unlink()  # force a full download
+    empty = {PAGE.path: build_page([]), "/fr-fr/release-health/status-fictive-b": build_page([])}
+    with pytest.raises(PageFormatError, match="changement de structure") as excinfo:
+        run(config, Site(empty))
+    assert excinfo.value.exit_code == 4
+    assert (config.output_directory / "issues.jsonl").read_text("utf-8") == before
+    report = json.loads((config.output_directory / "report.json").read_text(encoding="utf-8"))
+    assert report["status"] == "format_changed" and report["pages_empty"] == [
+        "fictive-a",
+        "fictive-b",
+    ]
 
 
 def test_no_personal_or_ticket_content_in_the_logs(tmp_path, caplog):

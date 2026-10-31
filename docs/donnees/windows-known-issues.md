@@ -113,7 +113,7 @@ uv run python scripts/fetch_windows_issues.py
 - Erreurs passagères (délai dépassé, erreur de connexion, HTTP 429 ou 5xx) : jusqu'à 3 nouvelles tentatives, avec une attente de 5, 10 puis 20 secondes. Chaque tentative respecte aussi le délai de 2 secondes.
 - Une page en échec (par exemple 404) est notée dans le rapport et le traitement continue ; au bout de 3 échecs consécutifs, le script s'arrête (code 5).
 - Une page dont la structure est inattendue arrête tout le traitement (code 4) : continuer reviendrait à solliciter la source pour produire des données fausses.
-- Une page dont la section « Problèmes connus » n'a ni tableau ni bloc de détail est considérée comme sans problème : elle est listée dans `pages_empty` du rapport pour être vérifiée.
+- Une page dont la section « Problèmes connus » n'a ni tableau ni bloc de détail est considérée comme sans problème : elle est listée dans `pages_empty` du rapport pour être vérifiée. Une page vide **isolée** est acceptée. Si **toutes** les pages réellement téléchargées (hors réponses 304) sont vides, c'est presque sûrement un changement de structure chez Microsoft : le script s'arrête avec le code 4 et un message clair, sans rien écrire (la sortie existante est conservée). Avec `--only` sur une seule page, une page vide arrête donc aussi le script.
 
 ## Données produites
 
@@ -133,7 +133,7 @@ Un enregistrement par problème et par page, dans `data/raw/windows_known_issues
 
 ### Homogénéisation (C3)
 
-- **Dates** : les pages donnent l'heure du Pacifique (« PT »), sous deux formes (`10:13` et `17h44`). Elle est convertie en **UTC**, avec la règle américaine de l'heure d'été (du deuxième dimanche de mars au premier dimanche de novembre). La règle est écrite à la main et testée, car `zoneinfo` n'a pas de base de fuseaux horaires sous Windows sans paquet supplémentaire. Limite : l'heure ambiguë du changement d'heure d'automne n'est pas distinguée.
+- **Dates** : les pages donnent l'heure du Pacifique (« PT »), sous deux formes (`10:13` et `17h44`). Elle est convertie en **UTC** avec `zoneinfo.ZoneInfo("America/Los_Angeles")`, qui applique l'heure d'été américaine. Le paquet `tzdata` fournit la base des fuseaux horaires, indispensable sous Windows, et est installé par la CI (`uv sync --locked`). Pour l'heure ambiguë du changement d'automne (01:30 existe deux fois), le comportement par défaut `fold=0` est conservé : la première occurrence, en heure d'été.
 - **Statuts** : « Résolu » donne `resolved`, « Atténué » donne `mitigated`, « Confirmé », « Enquête en cours », « Signalé » et « Ouvert » donnent `open`. Le suffixe « externe » (cause chez un tiers) est conservé dans `status_external`. Le libellé d'origine reste dans `status_raw`. Un libellé inconnu **arrête** le script (code 4) : deviner masquerait un changement de la page.
 - **Versions** : version de Windows tirée de la configuration (le titre de la page n'a pas un format stable), build et KB en champs séparés (`KB` suivi de chiffres).
 
@@ -165,7 +165,7 @@ uv run pytest tests/test_windows_issues.py
 | Contrôle croisé tableau et blocs de détail | Garantit qu'aucun problème n'est oublié en silence | Lire seulement le tableau récapitulatif |
 | `ETag` pour l'incrémental | Évite de télécharger les pages inchangées, donc moins de charge sur la source | Re-télécharger tout à chaque lancement |
 | Lecteur de `robots.txt` maison | La bibliothèque standard ignore les motifs `*` que Microsoft utilise | `RobotFileParser` seul (faux négatifs possibles) |
-| Conversion de l'heure du Pacifique écrite à la main | Aucune dépendance supplémentaire | `tzdata` (une dépendance de plus pour une règle de deux lignes) |
+| `zoneinfo` avec `tzdata` pour l'heure du Pacifique | Règles d'heure d'été maintenues par la base IANA, pas de code à entretenir | Calcul manuel des dates de changement d'heure (risque d'erreur, non maintenu) |
 
 ## Limites
 

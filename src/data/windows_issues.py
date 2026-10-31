@@ -36,10 +36,11 @@ import unicodedata
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 
 import httpx2
 import yaml
@@ -189,26 +190,17 @@ def normalize_status(raw: str) -> tuple[str, bool]:
     raise PageFormatError(f"Statut inconnu : {raw!r} (ni résolu, ni atténué, ni ouvert).")
 
 
-def _nth_weekday(year: int, month: int, weekday: int, n: int) -> date:
-    first = date(year, month, 1)
-    return first + timedelta(days=(weekday - first.weekday()) % 7 + 7 * (n - 1))
+PACIFIC = ZoneInfo("America/Los_Angeles")
 
 
 def pacific_to_utc(local: datetime) -> datetime:
     """Convert a naive Pacific Time (« PT » on the pages) to an aware UTC datetime.
 
-    United States rule: daylight saving time (UTC-7) from the second Sunday of March at 02:00 to
-    the first Sunday of November at 02:00, otherwise UTC-8. Written by hand to avoid a ``tzdata``
-    dependency (the standard ``zoneinfo`` has no timezone database on Windows).
+    Uses the IANA zone ``America/Los_Angeles`` (the ``tzdata`` package supplies the database on
+    Windows). For the ambiguous hour of the autumn change, ``fold=0`` is kept: the first
+    occurrence, daylight saving time.
     """
-    start = datetime.combine(_nth_weekday(local.year, 3, 6, 2), datetime.min.time()) + timedelta(
-        hours=2
-    )
-    end = datetime.combine(_nth_weekday(local.year, 11, 6, 1), datetime.min.time()) + timedelta(
-        hours=2
-    )
-    offset = 7 if start <= local < end else 8
-    return (local + timedelta(hours=offset)).replace(tzinfo=UTC)
+    return local.replace(tzinfo=PACIFIC, fold=0).astimezone(UTC)
 
 
 _DATE_TIME_PT = re.compile(r"(\d{4}-\d{2}-\d{2})[ ,]*(\d{1,2})[:h](\d{2})\s*PT")
@@ -778,6 +770,11 @@ def _extract(
             if response.etag:
                 state[page.slug] = response.etag
                 _write_state(state_path, state)  # saved page by page: an interruption loses nothing
+        if report.pages_downloaded and len(report.pages_empty) == report.pages_downloaded:
+            raise PageFormatError(
+                f"Toutes les pages téléchargées ({report.pages_downloaded}) sont sans problème "
+                "connu : probable changement de structure chez Microsoft, aucune donnée écrite."
+            )
     finally:
         report.by_status = dict(statuses)
         report.fields_filled = {name: filled[name] for name in RECORD_FIELDS}
