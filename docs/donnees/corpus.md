@@ -145,6 +145,31 @@ Mesure sur les 3 118 textes générés d'entraînement et de validation, après 
 
 Les deux premiers chiffres sont élevés parce que les formules de politesse, l'urgence, les durées et les noms varient d'un message à l'autre. Le troisième est plus parlant : **140 objets pour 3 118 messages**, soit environ 22 messages par modèle d'objet. Avant l'enrichissement des modèles de phrases (quatre de plus par catégorie pour huit catégories très demandées), il y en avait 110, soit environ 28 messages par objet. La variété de fond reste donc limitée : c'est la raison de l'évaluation sur des tickets **réels**.
 
+## Premier contrôle avec un modèle simple
+
+Lors de la relecture de la PR, un modèle simple (TF-IDF et régression logistique, script jetable non versionné) a été entraîné pour vérifier que le corpus se comporte correctement. **Ce n'est pas l'évaluation du modèle du projet**, qui reste à faire en E3. Le macro-F1 est la moyenne des scores F1 des catégories, chaque catégorie pesant autant.
+
+| Jeu d'entraînement | Macro-F1 sur le test externe | Exactitude sur le test externe |
+|---|---|---|
+| Corpus retenu | 0,30 | 0,34 |
+| Corpus retenu, balises retirées | 0,31 | 0,36 |
+| Public seul (7 682 tickets) | 0,21 | 0,21 |
+| Public limité à 70 % de la cible | 0,30 | 0,32 |
+| Public limité à 50 % de la cible | 0,33 | 0,33 |
+| Généré seul (6 000 tickets) | 0,40 | 0,44 |
+
+Sur le jeu de validation, le corpus retenu obtient pourtant un macro-F1 de 0,89, avec une exactitude de 73 % sur les tickets publics et de 100 % sur les tickets générés.
+
+Ce que ces mesures montrent :
+
+- **Le score de validation est trompeur.** Le modèle reconnaît les modèles de phrases du générateur : les 100 % ne prouvent rien. La validation sert à comparer des réglages, pas à annoncer un résultat.
+- **Le modèle reconnaît l'origine d'un texte.** Il distingue public et généré avec 100 % d'exactitude sur la validation. Or quatre catégories (`network`, `software`, `infrastructure`, `security`) ne contiennent que du public, et d'autres presque que du généré.
+- **Corriger seulement ce mélange ne suffit pas.** Limiter la part publique change peu le score : l'écart principal semble venir ailleurs.
+- **Les vrais tickets du test ne ressemblent pas à l'entraînement.** Longueur médiane de 80 caractères au test externe, contre 501 pour les tickets publics d'entraînement et 286 pour les générés.
+- **Les balises ne sont pas homogènes.** 63 % des tickets du test externe contiennent une balise entre crochets, 4 % des tickets publics d'entraînement une balise entre chevrons, et 25 % des générés une adresse fictive en clair. Les retirer ne change presque rien au score, mais une convention unique reste à appliquer avant l'entraînement.
+
+Deux réserves. Les étiquettes du test externe ne sont pas encore relues : une partie de l'écart peut venir d'elles, et la relecture des 50 tickets aidera à trancher. Par ailleurs, ces comparaisons ont utilisé le test externe : **aucun choix de corpus n'en a été déduit**, sinon ce test ne serait plus indépendant. La suite est suivie dans une Issue dédiée.
+
 ## Relecture des 50 tickets
 
 Le script `scripts/prepare_reference_review.py` sélectionne 50 tickets du test externe (quotas par catégorie, rotation sur les règles d'étiquetage, quasi-doublons écartés, graine 42, un ticket forcé dont la balise n'a pas été restaurée) et prépare un fichier Excel. Le développeur y confirme la catégorie et renseigne **le type et la priorité**. Le script **refuse d'écraser** un fichier existant (sauf option `--force`), car le développeur y saisit sa relecture à la main.
@@ -177,6 +202,6 @@ uv run --group dev pytest tests/test_corpus.py tests/test_generator_categories.p
 ## Ce qui n'a pas été vérifié
 
 - La qualité des étiquettes des tickets publics : les règles de correspondance restent une **proposition** à valider. Les 50 tickets relus par le développeur donneront un taux d'accord (l'Issue #46 reste ouverte jusqu'à cette relecture).
-- Aucun classifieur n'a encore été entraîné sur ce corpus : l'effet de la part générée (52 %) sur les scores réels reste à mesurer à l'étape suivante.
+- Le modèle du projet n'est pas encore entraîné : seul le contrôle simple décrit plus haut donne une première indication, sans réglage ni validation croisée.
 - Le choix de 60 tickets par catégorie pour le test généré est un compromis (assez pour un score stable, peu pour ne pas peser) non encore discuté.
 - Le seuil de quasi-doublon (50 caractères) est une convention : il n'a pas été comparé à d'autres seuils ni à une mesure de similarité.
