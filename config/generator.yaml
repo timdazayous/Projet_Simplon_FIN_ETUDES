@@ -13,8 +13,20 @@ output:
   alerts_file: synthetic_alerts.jsonl
 
 volumes:
-  free_text: 2400  # ~40 % du texte libre d'entraînement (6 000 messages, voir jeux-publics.md)
+  free_text: 2400  # défaut du script generate_synthetic.py seul ; l'assemblage du corpus impose
+                   # le besoin réel par catégorie (section « corpus », voir docs/donnees/corpus.md)
   alerts: 1500     # alertes de supervision pour tester les règles
+
+# Assemblage du corpus de classification (Issue #46, src/data/corpus.py).
+corpus:
+  total: 6000             # messages d'entraînement + validation (public + généré)
+  validation_share: 0.15  # 85 / 15, stratifié par catégorie
+  test_generated:         # test généré (optimiste : modèles de phrases partagés avec l'entraînement)
+    seed: 4242            # autre graine que l'entraînement : autres clients fictifs, autres tirages
+    per_category:         # catégories sans vrai ticket de test
+      backup: 60
+      procurement: 60
+      admin_billing: 60
 
 clients:
   count: 60            # une soixantaine de PME fictives
