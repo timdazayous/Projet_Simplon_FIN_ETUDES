@@ -47,6 +47,7 @@ nav:
       - Spécifications de l'extraction: donnees/specifications-extraction.md
       - Dates de fin de support (endoflife.date): donnees/endoflife.md
       - Avis de sécurité du CERT-FR (API JSON): donnees/certfr.md
+      - Problèmes connus de Windows (scraping): donnees/windows-known-issues.md
       - Générateur de tickets synthétiques: generateur.md
   - Documentation: documentation.md
   - Intégration continue: ci.md
