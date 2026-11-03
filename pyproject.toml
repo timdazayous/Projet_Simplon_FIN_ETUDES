@@ -28,6 +28,7 @@ data = [
     "huggingface-hub>=0.30",
     "pyarrow>=18",
     "psutil>=6",
+    "openpyxl>=3.1.5",
 ]
 # Traduction OPUS-MT sur CPU : dépendances lourdes, groupe séparé.
 translate = [
