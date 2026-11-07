@@ -168,13 +168,43 @@ Ce que ces mesures montrent :
 - **Les vrais tickets du test ne ressemblent pas à l'entraînement.** Longueur médiane de 80 caractères au test externe, contre 501 pour les tickets publics d'entraînement et 286 pour les générés.
 - **Les balises ne sont pas homogènes.** 63 % des tickets du test externe contiennent une balise entre crochets, 4 % des tickets publics d'entraînement une balise entre chevrons, et 25 % des générés une adresse fictive en clair. Les retirer ne change presque rien au score, mais une convention unique reste à appliquer avant l'entraînement.
 
-Deux réserves. Les étiquettes du test externe ne sont pas encore relues : une partie de l'écart peut venir d'elles, et la relecture des 50 tickets aidera à trancher. Par ailleurs, ces comparaisons ont utilisé le test externe : **aucun choix de corpus n'en a été déduit**, sinon ce test ne serait plus indépendant. La suite est suivie dans une Issue dédiée.
+Deux réserves. Depuis, la relecture de 50 tickets a montré que les étiquettes du test externe sont fiables à environ 94 % : elles n'expliquent pas l'essentiel de l'écart (voir plus bas). Par ailleurs, ces comparaisons ont utilisé le test externe : **aucun choix de corpus n'en a été déduit**, sinon ce test ne serait plus indépendant. La suite est suivie dans une Issue dédiée.
 
 ## Relecture des 50 tickets
 
 Le script `scripts/prepare_reference_review.py` sélectionne 50 tickets du test externe (quotas par catégorie, rotation sur les règles d'étiquetage, quasi-doublons écartés, graine 42, un ticket forcé dont la balise n'a pas été restaurée) et prépare un fichier Excel. Le développeur y confirme la catégorie et renseigne **le type et la priorité**. Le script **refuse d'écraser** un fichier existant (sauf option `--force`), car le développeur y saisit sa relecture à la main.
 
 Vérification : exécuté vers un fichier temporaire, le script reproduit **les 50 mêmes identifiants, dans le même ordre**, que le fichier préparé le 31 octobre 2026.
+
+### Résultat de la relecture (7 novembre 2026)
+
+Le développeur a relu les 50 tickets, puis les cas dont il n'était pas sûr ont été arbitrés avec l'assistant IA, en appliquant la grille de la [taxonomie](../taxonomie.md). Le fichier conserve les deux versions : la relecture initiale et l'arbitrage, ce qui permet de voir ce qui a changé et pourquoi (19 tickets touchés, surtout des priorités).
+
+| Mesure | Résultat |
+|---|---|
+| Accord sur la catégorie, tous tickets | **47 sur 50 (94 %)** |
+| Tickets dont la règle était marquée douteuse | 12 sur 13 |
+| Tickets dont la règle n'était pas douteuse | 35 sur 37 |
+| Types attribués | 30 demandes de service, 20 incidents, aucune demande d'information |
+| Priorités attribuées | 26 `P4`, 23 `P3`, 1 `P2`, aucune `P1` |
+
+Les trois désaccords :
+
+| Ticket | Proposée | Retenue | Origine de l'erreur |
+|---|---|---|---|
+| Lien d'activation d'une application de double authentification | `software` | `accounts` | Règle de correspondance « Support general » (marquée douteuse) |
+| Code QR introuvable pour l'application d'authentification Okta | `software` | `accounts` | Étiquette d'origine du jeu public (« Software ») |
+| Demande d'identifiant de connexion | `infrastructure` | `accounts` | Règle de correspondance « Fileservice » |
+
+Ce que l'on peut en conclure :
+
+- **Les étiquettes de catégorie du test externe sont globalement fiables** (environ 6 % d'erreurs sur l'échantillon). Ce bruit est trop faible pour expliquer le macro-F1 de 0,30 du contrôle simple : l'écart avec les vrais tickets vient surtout des textes eux-mêmes (longueur, style, balises), voir l'Issue #50.
+- **Les trois erreurs touchent l'authentification.** La règle « identifiants et droits → `accounts` » existait déjà, mais l'étiquette d'origine l'emportait. La taxonomie précise désormais la double authentification.
+- **Le taux d'accord est probablement surestimé.** La catégorie proposée était affichée pendant la relecture : le relecteur a pu être influencé par elle (biais d'ancrage). Une relecture « à l'aveugle », sans la proposition, aurait été plus rigoureuse ; elle demanderait plus de temps.
+- **Le type et la priorité ne pourront pas être évalués sur toutes les classes.** L'échantillon ne contient ni demande d'information ni `P1`. Ces classes devront être évaluées sur le test généré, avec la même réserve que pour les catégories absentes.
+- **Défaut de traduction repéré** : « issue » traduit par « numéro » (« Skype and OneNote issue » devient « Skype et numéro OneNote »). Recherché dans tout le corpus traduit, il touche 25 tickets sur 4 234 contenant « issue », soit 0,6 % : négligeable, aucune retraduction.
+
+Les corrections ne modifient pas automatiquement `test_external.jsonl`, dont les étiquettes viennent des règles de correspondance. Les 50 tickets relus forment un **jeu de référence humain** à part, conservé hors du dépôt (`data/raw/reference/`), qui servira à mesurer le modèle sur des étiquettes vérifiées.
 
 ## Reproduire
 
@@ -201,7 +231,7 @@ uv run --group dev pytest tests/test_corpus.py tests/test_generator_categories.p
 
 ## Ce qui n'a pas été vérifié
 
-- La qualité des étiquettes des tickets publics : les règles de correspondance restent une **proposition** à valider. Les 50 tickets relus par le développeur donneront un taux d'accord (l'Issue #46 reste ouverte jusqu'à cette relecture).
+- La qualité des étiquettes des tickets publics au-delà de l'échantillon : 94 % d'accord sur 50 tickets relus, avec une possible surestimation (voir « Résultat de la relecture »). Les étiquettes d'entraînement n'ont pas été relues.
 - Le modèle du projet n'est pas encore entraîné : seul le contrôle simple décrit plus haut donne une première indication, sans réglage ni validation croisée.
 - Le choix de 60 tickets par catégorie pour le test généré est un compromis (assez pour un score stable, peu pour ne pas peser) non encore discuté.
 - Le seuil de quasi-doublon (50 caractères) est une convention : il n'a pas été comparé à d'autres seuils ni à une mesure de similarité.
