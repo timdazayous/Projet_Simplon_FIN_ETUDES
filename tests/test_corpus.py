@@ -18,11 +18,13 @@ from src.data.corpus import (
     normalise_key,
     public_rows,
     select_public,
+    split_external,
     stratified_group_split,
     template_key,
 )
 from src.data.generator import DEFAULT_CONFIG_PATH, load_config
 from src.data.label_mapping import Proposal
+from src.data.tags import leftover_tags
 from src.data.taxonomy import load_taxonomy
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -71,11 +73,15 @@ def small_config(tmp_path):
     cfg["corpus"] = {
         "total": 120,
         "validation_share": 0.25,
+        "tuning": {"share": 0.25, "min_test_per_category": 1},
         "test_generated": {"seed": 777, "per_category": {"backup": 5, "procurement": 5}},
     }
     path = tmp_path / "generator.yaml"
     path.write_text(yaml.safe_dump(cfg, allow_unicode=True), encoding="utf-8")
     return path
+
+
+REFERENCE_IDS = [f"PUB-ITS-{i:05d}" for i in range(5)] + ["PUB-ITS-LIKE"]
 
 
 def fake_public():
@@ -100,7 +106,7 @@ def fake_public():
     ]
     external = [
         raw_ticket(f"PUB-ITS-{i:05d}", "accounts", distinct_body(5000 + i), doubtful=i % 2 == 0)
-        for i in range(10)
+        for i in range(40)
     ]
     # An external ticket that looks like a training one: the training copy must disappear.
     external.append(raw_ticket("PUB-ITS-LIKE", "network", distinct_body(3)[:60] + " autre fin"))
@@ -115,6 +121,7 @@ def run_assemble(small_config, taxonomy):
         config_path=small_config,
         taxonomy=taxonomy,
         mapping=FakeMapping(),
+        reference_ids=REFERENCE_IDS,
     )
 
 
@@ -296,7 +303,7 @@ def test_external_test_never_enters_the_training(small_config, taxonomy):
     assert not any(i.startswith("PUB-ITS") for i in training_ids)
     # The training ticket that looked like an external one was removed from the pool.
     assert report["dropped"]["train_pool_like_external_test"] == 1
-    assert len(subsets["test_external"]) == 11
+    assert len(subsets["test_external"]) + len(subsets["tuning"]) == 41
 
 
 def test_near_duplicates_stay_on_the_same_side(small_config, taxonomy):
@@ -320,9 +327,17 @@ def test_missing_labels_are_kept_and_reported(small_config, taxonomy):
     external = subsets["test_external"]
     assert all(r["type"] is None and r["priority"] is None for r in external)
     described = report["subsets"]["test_external"]
-    assert described["completeness"] == {"category": 11, "type": 0, "priority": 0, "doubtful": 11}
-    assert described["completeness_doubtful"]["rows"] == 5
-    assert described["completeness_not_doubtful"]["rows"] == 6
+    rows = len(external)
+    assert described["completeness"] == {
+        "category": rows,
+        "type": 0,
+        "priority": 0,
+        "doubtful": rows,
+    }
+    split = (
+        described["completeness_doubtful"]["rows"] + described["completeness_not_doubtful"]["rows"]
+    )
+    assert split == rows
     train = report["subsets"]["train"]
     # Fake telephony tickets have no type: the gap is reported, not filled.
     assert train["completeness"]["type"] < train["rows"]
@@ -365,6 +380,7 @@ def test_assembly_fails_when_a_public_category_has_no_target(small_config, taxon
             config_path=small_config,
             taxonomy=taxonomy,
             mapping=FakeMapping(),
+            reference_ids=REFERENCE_IDS,
         )
 
 
@@ -378,3 +394,105 @@ def test_default_config_has_a_corpus_section():
         "admin_billing",
     }
     assert cfg["corpus"]["test_generated"]["seed"] != cfg["seed"]
+
+
+# ----------------------------------------------------------------- Issue #54: tuning set
+
+
+def external_rows(per_category: dict[str, int], *, shared_opening: int = 0):
+    """Fake real tickets; the first ``shared_opening`` of 'accounts' share an opening."""
+    rows, index = [], 0
+    for category, count in per_category.items():
+        for i in range(count):
+            text = distinct_body(9000 + index)
+            if category == "accounts" and i < shared_opening:
+                text = "même début de texte pour ces tickets quasi identiques " + "x" * i
+            rows.append(
+                {"id": f"E{index:03d}", "source": "public", "text": text, "category": category,
+                 "type": None, "priority": None, "doubtful": False}
+            )  # fmt: skip
+            index += 1
+    return rows
+
+
+def test_external_split_is_stratified_and_reproducible():
+    rows = external_rows({"accounts": 60, "software": 30, "printing": 20})
+    test, tuning = split_external(rows, [], tuning_share=0.3, seed=5, min_test=10)
+    assert len(test) + len(tuning) == len(rows)
+    assert {r["id"] for r in test}.isdisjoint({r["id"] for r in tuning})
+    by_category = Counter(r["category"] for r in tuning)
+    assert by_category == {"accounts": 18, "software": 9, "printing": 6}
+    assert split_external(rows, [], tuning_share=0.3, seed=5, min_test=10) == (test, tuning)
+    other = split_external(rows, [], tuning_share=0.3, seed=6, min_test=10)
+    assert {r["id"] for r in other[1]} != {r["id"] for r in tuning}
+
+
+def test_external_split_keeps_near_duplicates_on_the_same_side():
+    rows = external_rows({"accounts": 60, "software": 30}, shared_opening=8)
+    test, tuning = split_external(rows, [], tuning_share=0.3, seed=1, min_test=1)
+    family = {r["id"] for r in rows if r["text"].startswith("même début")}
+    assert len(family) == 8
+    tuning_ids = {r["id"] for r in tuning}
+    assert len({i in tuning_ids for i in family}) == 1
+    assert {group_key(r) for r in test}.isdisjoint({group_key(r) for r in tuning})
+
+
+def test_reviewed_tickets_and_their_near_duplicates_stay_in_the_test():
+    rows = external_rows({"accounts": 60, "software": 30}, shared_opening=8)
+    reviewed = [r["id"] for r in rows if r["category"] == "software"][:10]
+    reviewed.append(next(r["id"] for r in rows if r["text"].startswith("même début")))
+    test, tuning = split_external(rows, reviewed, tuning_share=0.5, seed=2, min_test=1)
+    assert set(reviewed) <= {r["id"] for r in test}
+    assert all(not r["text"].startswith("même début") for r in tuning)
+
+
+def test_external_split_stops_when_a_category_has_fewer_than_ten_test_tickets():
+    rows = external_rows({"accounts": 60, "security": 12})
+    with pytest.raises(ValueError, match=r"fewer than 10 test tickets.*security"):
+        split_external(rows, [], tuning_share=0.5, seed=1, min_test=10)
+    test, _ = split_external(rows, [], tuning_share=0.5, seed=1, min_test=5)
+    assert Counter(r["category"] for r in test)["security"] == 6
+
+
+def test_external_split_rejects_an_unknown_reviewed_ticket():
+    with pytest.raises(ValueError, match="missing"):
+        split_external(
+            external_rows({"accounts": 10}), ["INCONNU"], tuning_share=0.3, seed=1, min_test=1
+        )
+
+
+def test_assembly_stops_below_the_minimum_of_test_tickets(small_config, taxonomy):
+    cfg = yaml.safe_load(small_config.read_text(encoding="utf-8"))
+    cfg["corpus"]["tuning"]["min_test_per_category"] = 10
+    small_config.write_text(yaml.safe_dump(cfg, allow_unicode=True), encoding="utf-8")
+    with pytest.raises(ValueError, match="fewer than 10 test tickets"):
+        run_assemble(small_config, taxonomy)
+
+
+def test_tuning_set_is_distinct_from_every_other_set(small_config, taxonomy):
+    subsets, report = run_assemble(small_config, taxonomy)
+    tuning = subsets["tuning"]
+    assert tuning and all(r["id"].startswith("PUB-ITS") for r in tuning)
+    assert set(REFERENCE_IDS) <= {r["id"] for r in subsets["test_external"]}
+    for other in ("train", "validation", "test_external", "test_generated"):
+        leaks = report["leak_check"]
+        pair = leaks.get(f"{other}|tuning") or leaks[f"tuning|{other}"]
+        assert pair == {"identical_texts": 0, "near_duplicate_keys": 0}, other
+    split = report["external_split"]["by_category"]
+    assert {c: v["tuning"] + v["test"] for c, v in split.items()} == {"accounts": 40, "network": 1}
+
+
+def test_leak_check_flags_a_tuning_ticket_copied_into_the_test():
+    row = {"id": "1", "source": "public", "category": "a", "text": "un texte unique " * 6}
+    leaks = leak_check({"tuning": [row], "test_external": [dict(row, id="2")], "train": []})
+    assert leaks["tuning|test_external"]["identical_texts"] == 1
+
+
+def test_every_source_follows_the_tag_convention(small_config, taxonomy):
+    subsets, report = run_assemble(small_config, taxonomy)
+    for name, rows in subsets.items():
+        assert not any(leftover_tags(r["text"]) for r in rows), name
+        assert report["tag_convention"][name]["rows_with_leftover_tags"] == 0
+    generated = [r["text"] for r in subsets["train"] if r["source"] == "generated"]
+    assert any("[NAME]" in t for t in generated)
+    assert not any("@" in t or "FAKE-" in t or "01 99 00" in t for t in generated)

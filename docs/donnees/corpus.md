@@ -2,6 +2,8 @@
 
 **Issue** : #46 · **Compétences** : C3 (agréger et homogénéiser des sources, jeux d'entraînement et de test sans fuite), C12 (jeux d'entraînement, de validation et de test distincts, évaluation fiable) · **Code** : `src/data/corpus.py`, `scripts/assemble_corpus.py` · **Configuration** : section `corpus` de `config/generator.yaml` · **Date** : 31 octobre 2026
 
+Les sections « Volumes réels » et suivantes datent du 31 octobre 2026 (avant l'Issue #54) ; la section « Convention de balises et jeu de réglage » décrit l'état le plus récent.
+
 Cette page décrit comment les tickets publics traduits et les tickets générés sont réunis en un corpus de classification : un jeu d'entraînement, un jeu de validation et deux jeux de test. Les volumes ci-dessous sont **réels** : ils viennent du rapport `report.json` produit par le script sur le poste du développeur (aucun texte de ticket n'est reproduit ici).
 
 ## Résumé
@@ -206,16 +208,84 @@ Ce que l'on peut en conclure :
 
 Les corrections ne modifient pas automatiquement `test_external.jsonl`, dont les étiquettes viennent des règles de correspondance. Les 50 tickets relus forment un **jeu de référence humain** à part, conservé hors du dépôt (`data/raw/reference/`), qui servira à mesurer le modèle sur des étiquettes vérifiées.
 
+## Convention de balises et jeu de réglage (Issue #54, 7 novembre 2026)
+
+**État : le découpage du test est bloqué par le seuil de 10 tickets** (voir « Seuil de 10 tickets de test »). Les volumes ci-dessous sont ceux d'un essai avec le seuil ramené à 0, hors dépôt.
+
+### Convention de balises
+
+Le contrôle simple a montré que le modèle reconnaît l'origine d'un texte. Chaque source écrivait ses données personnelles à sa façon ; elles suivent maintenant **une seule convention**, celle de tasksource (la seule source réelle, donc la seule gardée telle quelle) : crochets, majuscules. Le code est dans `src/data/tags.py`. Le réglage s'applique à la construction des lignes, avant tout découpage, donc les clés de quasi-doublons portent sur les textes déjà convertis.
+
+Balises relevées dans les sources avant la convention (comptes par motif sur les fichiers réels) :
+
+| Source | Balises ou données relevées | Devient |
+|---|---|---|
+| Public d'entraînement | `<br>` (182 tickets), `<tel_num>` (44), `<acc_num>` (16), `<name>` (4), `<nom>` (1), `<email>` (1), `[Votre nom]` (9), `[nom]` et `[Nom]` (5), `[Your Company]` (1) | saut de ligne, `[PHONE]`, `[ACCOUNT_NUMBER]`, `[NAME]`, `[EMAIL]`, `[COMPANY]` |
+| Test externe tasksource | `[NAME]`, `[COMPANY]`, `[LOCATION]`, `[ADDRESS]`, `[USERNAME]`, `[TICKET ID]`, `[SERVER]`, `[EMAIL]`, `[SOFTWARE]`, `[PHONE]`, `[URL]`, `[IP]`, `[PASSWORD]`, `[MAC_ADDRESS]` ; `[Image]` (8), `[Crédit photographique]` (2), `<IP>` (2) | inchangées, sauf les trois dernières : `[IMAGE]`, `[IMAGE]`, `[IP]` |
+| Généré | adresses électroniques en clair (650 en entraînement), numéros de téléphone fictifs, noms de personnes et d'entreprises, serveurs `XXX-SRV-…`, secrets `FAKE-…`, `[Ticket #12345]` et `#12345` | `[EMAIL]`, `[PHONE]`, `[NAME]`, `[COMPANY]`, `[SERVER]`, `[PASSWORD]`, `[TICKET ID]` |
+
+Balises de la convention : `[NAME]`, `[COMPANY]`, `[LOCATION]`, `[ADDRESS]`, `[USERNAME]`, `[TICKET ID]`, `[SERVER]`, `[EMAIL]`, `[PHONE]`, `[IP]`, `[MAC_ADDRESS]`, `[URL]`, `[SOFTWARE]`, `[PASSWORD]`, `[ACCOUNT_NUMBER]`, `[IMAGE]`. `[URGENT]` (préfixe d'objet écrit par une personne) n'est pas une balise de donnée et reste tel quel.
+
+Choix :
+
+- **Les données fictives du générateur sont aussi remplacées** (noms, entreprises, téléphones, serveurs), pas seulement les adresses : sinon le modèle apprend « un nom propre en clair = texte généré ». Alternative écartée : ne remplacer que les adresses électroniques, comme le demandait le minimum de l'Issue, ce qui laissait les noms et les entreprises en clair dans les textes générés.
+- **Les prénoms et noms ne sont remplacés que dans les textes générés** : dans un texte réel, un prénom est déjà masqué par la source, et un mot comme « Claire » pourrait être courant.
+- Le générateur lui-même n'est pas modifié (même graine, mêmes tirages) : la conversion est faite sur les textes produits.
+- Le rapport donne, par jeu, le nombre de chaque balise et le nombre de lignes qui contiennent encore une ancienne balise (`tag_convention`) : **0** pour tous les jeux.
+
+### Découpage du test externe
+
+Les 457 tickets tasksource sont découpés en un **test** (environ 300) et un **jeu de réglage** (environ 150), avec `split_external` (`src/data/corpus.py`) :
+
+- stratifié par catégorie, graine 42 (part de réglage 0,33 dans `config/generator.yaml`) ;
+- les quasi-doublons (même `group_key`) restent du même côté ;
+- les **50 tickets relus**, et tout ticket de même `group_key`, restent dans le test (leur identifiant est lu dans la colonne « Identifiant » du fichier de relecture, option `--reference`) ;
+- le jeu de réglage sert à **choisir** (corpus, modèle, réglages). Le test ne sert plus à choisir quoi que ce soit.
+
+Volumes d'un essai avec seuil à 0 (le test fait 307 tickets, le réglage 150) :
+
+| Catégorie | Test | Réglage |
+|---|---|---|
+| `accounts` | 156 | 77 |
+| `messaging` | 49 | 24 |
+| `software` | 36 | 17 |
+| `printing` | 21 | 11 |
+| `telephony` | 17 | 9 |
+| `infrastructure` | 9 | 4 |
+| `network` | 9 | 4 |
+| `security` | 6 | 3 |
+| `workstation` | 4 | 1 |
+
+### Seuil de 10 tickets de test
+
+Le script **s'arrête avec un message clair** si une catégorie présente au test a moins de 10 tickets (`min_test_per_category` dans `config/generator.yaml`). Sur les données réelles, **quatre catégories passent sous le seuil** : `infrastructure` (9), `network` (9), `security` (6), `workstation` (4). Pour `security` (9 tickets en tout) et `workstation` (5 en tout), le seuil est hors d'atteinte même si tous les tickets allaient au test. Le script n'a donc pas été relâché : la décision (baisser le seuil, regrouper des catégories, ajouter de vrais tickets, ne pas évaluer ces catégories sur le test externe) revient au développeur.
+
+### Absence de fuite
+
+Le contrôle des fuites couvre maintenant **dix paires** (cinq jeux : entraînement, validation, réglage, test externe, test généré) : textes identiques et clés de quasi-doublon communes sont à 0 pour toutes (`leak_check` dans `report.json`).
+
+### Mesure avant et après la convention (jeu de réglage uniquement)
+
+Contrôle simple (TF-IDF avec mots et paires de mots, régression logistique, script jetable hors dépôt) entraîné sur le jeu d'entraînement, mesuré sur les **150 mêmes tickets de réglage**. Le test externe n'est pas utilisé.
+
+| Corpus d'entraînement | Macro-F1 sur le réglage | Exactitude sur le réglage |
+|---|---|---|
+| Avant la convention | 0,32 | 0,36 |
+| Après la convention | 0,34 | 0,49 |
+
+À lire avec prudence : le jeu de réglage compte un seul ticket `workstation` et 3 `security`, donc le macro-F1 est instable ; l'entraînement « après » diffère de 2 lignes du « avant » (les clés de quasi-doublons des textes générés ont changé). L'exactitude gagne 13 points, le macro-F1 seulement 2 : la convention aide, elle ne règle pas l'écart. Les textes réels restent courts et différents du corpus : suite dans #50.
+
 ## Reproduire
 
 Prérequis : les trois fichiers traduits sont dans `data/raw/public/` (voir [Récupération et traduction](recuperation-traduction.md)). Aucune donnée n'est dans le dépôt.
 
 ```bash
-# Corpus : 4 fichiers JSONL et report.json dans data/processed/corpus/
-uv run python scripts/assemble_corpus.py
+# Corpus : 5 fichiers JSONL et report.json dans data/processed/corpus/
+# (groupe data : lecture du fichier Excel de relecture)
+uv run --group data python scripts/assemble_corpus.py
 
 # Autres dossiers
-uv run python scripts/assemble_corpus.py --public-dir data/raw/public --out-dir data/processed/corpus
+uv run --group data python scripts/assemble_corpus.py --public-dir data/raw/public     --out-dir data/processed/corpus --reference data/raw/reference/relecture_50_tickets.xlsx
 
 # Fichier de relecture (groupe data : openpyxl)
 uv run --group data python scripts/prepare_reference_review.py --output relecture.xlsx
@@ -226,7 +296,7 @@ L'assemblage prend quelques secondes et deux exécutions donnent des fichiers **
 Tests (sans donnée réelle, sans réseau) :
 
 ```bash
-uv run --group dev pytest tests/test_corpus.py tests/test_generator_categories.py tests/test_prepare_reference_review.py
+uv run --group dev pytest tests/test_corpus.py tests/test_tags.py tests/test_generator_categories.py tests/test_prepare_reference_review.py
 ```
 
 ## Ce qui n'a pas été vérifié
