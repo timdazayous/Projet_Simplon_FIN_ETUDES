@@ -104,6 +104,20 @@ L'installation silencieuse crée quatre comptes avec des **mots de passe connus 
 
 Même sur une machine locale, ce réflexe fait partie de la démarche de sécurité (OWASP : identifiants par défaut).
 
+**Points relevés au premier accès (7 novembre 2026)** :
+
+- **Admin n'est pas Super-Admin.** Le profil Admin gère le parc et les tickets, mais pas la configuration (profils, règles, clients OAuth). Il faut donner au compte personnel une habilitation **Super-Admin** sur l'entité **Root entity**, avec **Recursive = Yes** (onglet Authorizations de l'utilisateur), puis choisir ce profil par l'avatar en haut à droite. Le profil actif y est affiché.
+- **Un Admin ne peut pas attribuer un profil plus puissant que le sien.** Si `glpi` a été désactivé trop tôt, on peut le réactiver directement en base. La commande lit le mot de passe dans le conteneur, sans l'afficher :
+
+    ```bash
+    docker exec glpi-db sh -c 'mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" glpi -e "UPDATE glpi_users SET is_active=1 WHERE name=\"glpi\";"'
+    ```
+
+- **Désactiver plutôt que supprimer.** Un compte inactif ne peut plus se connecter, mais l'historique qui lui est rattaché est conservé, et `glpi` reste disponible comme compte de secours.
+- **`glpi-system` est à conserver.** C'est un compte interne de GLPI 11, utilisé pour les actions automatiques (inventaire des actifs, tâches planifiées) ; il ne sert pas à se connecter.
+
+État retenu : un seul compte Super-Admin personnel actif ; `glpi`, `tech`, `normal` et `post-only` désactivés ; `glpi-system` conservé.
+
 ## Arrêt, mise à jour, suppression
 
 ```bash
