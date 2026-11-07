@@ -83,7 +83,7 @@ Ne pas trancher sans en discuter avec le développeur :
 
 ## Organisation du travail
 
-- **Rôles** : Opus planifie, découpe en **Issues GitHub** (critères d'acceptation + compétence visée), relit les PR et tient la doc à jour. Sonnet code une Issue par branche et ouvre une PR. Le développeur décide et **lit chaque PR avant fusion** : il doit pouvoir la défendre seul devant le jury.
+- **Rôles** : Opus planifie, découpe en **Issues GitHub** (critères d'acceptation + compétence visée), relit les PR et tient la doc à jour. Sonnet code une Issue par branche et ouvre une PR ; depuis le sprint 3, une PR peut regrouper des Issues liées (un `Closes #N` par Issue) et commence par un résumé des points à lire en priorité, pour livrer plus par validation sans alourdir la relecture. Le développeur décide et **lit chaque PR avant fusion** : il doit pouvoir la défendre seul devant le jury.
 - **GitHub** : Opus gère les relectures (commentaire de contrôle référentiel sur la PR), la fusion (après le « ok » du développeur), le Project et la fermeture des Issues. Chaque PR contient `Closes #N`.
 - **Agents Sonnet** : Opus les lance lui-même (outil Agent, `model: sonnet`, `isolation: worktree`), sur demande du développeur, une Issue par agent. Ils travaillent toujours dans un worktree, jamais dans le dossier principal. Le prompt rappelle : lire CLAUDE.md, traiter l'Issue #N, tests verts, PR avec `Closes #N`.
 - **Pilotage agile** : GitHub Projects (backlog, kanban, burn-up). Ces traces servent de preuves pour C16.
