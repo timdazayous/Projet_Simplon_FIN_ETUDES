@@ -141,8 +141,8 @@ Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https
 - **Backlog** : #15 tri automatique de la veille (optionnel), #24 réévaluer GLPI 12, #30 benchmark des modèles de décision (phase 3), #31 exigences AI Act.
 - **Ensuite** : extraction depuis GLPI (API et SQL), base de données Merise / RGPD, API de données.
 
+- GLPI démarré le 2026-11-07 (compte Super-Admin personnel créé) : reste à changer ou désactiver les comptes par défaut `glpi`, `tech`, `normal`, `post-only`, et à passer l'interface en français. Captures locales dans `media/` (ignoré par Git).
 En attente du développeur :
-- **Premier démarrage de GLPI** ensemble (mots de passe par défaut à changer, mesure de la RAM ; la VM Docker est limitée à ~3,8 Go, à augmenter plus tard pour la stack complète).
 - Mettre à jour Ollama (`winget upgrade Ollama.Ollama`, cible ≥ 0.40.7) et FreshRSS (`pull` puis `up -d`).
 - Décidé le 2026-10-21 : source FreshRSS 1.30.2 conservée ; #31 réduite à la mention « généré par IA » (1 point), formation et chaîne de valeur en point de vigilance dans `docs/cadrage.md` ; migration vers Zensical après le 5 novembre (#35, repli Material épinglé), #13 fermée.
 - Sprint 3 avancé le 2026-10-21 (quota) : #13 terminée (PR #33), #26 terminée (PR #34, générateur `src/data/`). Restent #29 (avec le développeur, charge CPU) et #35 (après le 5 novembre).

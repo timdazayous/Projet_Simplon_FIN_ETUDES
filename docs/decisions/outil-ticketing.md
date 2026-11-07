@@ -31,7 +31,7 @@ Il doit donc offrir une API documentée, un schéma de base lisible, et tourner 
 | **API REST** | API v2 (« High-level API ») avec **OAuth2** (grant *password* pour les scripts) et doc Swagger intégrée ; l'API v1 historique reste disponible | API REST mature, authentification par jeton, très bien documentée | Zammad légèrement (plus simple) ; GLPI plus riche à présenter (OAuth2) |
 | **Accès SQL direct** | MariaDB, schéma volumineux mais nommé clairement (`glpi_tickets`, `glpi_itilcategories`, `glpi_itilfollowups`…) | PostgreSQL uniquement depuis la version 7.0 (mars 2026) | Égalité |
 | **Diversité des sources** | MariaDB comme source, PostgreSQL comme base du projet : deux SGBD, donc une vraie étape de transformation entre moteurs | Même moteur que la base du projet | GLPI |
-| **Ressources (RAM)** | Léger : un conteneur PHP + un conteneur MariaDB | **Au moins 4 Go exigés**, surtout à cause d'Elasticsearch, plus un réglage système (`vm.max_map_count`) | GLPI |
+| **Ressources (RAM)** | Léger : un conteneur PHP + un conteneur MariaDB, **255 Mo mesurés au repos** le 7 novembre 2026 ([mesures](../glpi.md#mesures-au-premier-demarrage)) | **Au moins 4 Go exigés**, surtout à cause d'Elasticsearch, plus un réglage système (`vm.max_map_count`) | GLPI |
 | **Installation Docker** | Images officielles `glpi/glpi` sur Docker Hub, installation silencieuse par variables `GLPI_DB_*` | `docker compose` officiel complet (plusieurs services) | Égalité |
 | **Éco-responsabilité** | Empreinte mémoire et CPU faible | Elasticsearch gourmand en permanence | GLPI |
 | **Crédibilité devant le jury** | Très répandu dans les PME et les collectivités françaises | Moins connu en France | GLPI |
@@ -62,7 +62,7 @@ Il doit donc offrir une API documentée, un schéma de base lisible, et tourner 
 
 ## À vérifier après la décision
 
-- Mesurer la consommation réelle de RAM de GLPI dans Docker et la noter dans la procédure d'installation.
+- Consommation réelle de RAM de GLPI dans Docker : mesurée le 7 novembre 2026, 68 Mo (GLPI) et 187 Mo (MariaDB) au repos, voir la procédure d'installation.
 - Tester l'API v2 (OAuth2 *password grant*) sur un ticket créé à la main avant d'écrire le script d'extraction.
 
 ## Sources

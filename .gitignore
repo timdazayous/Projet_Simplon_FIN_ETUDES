@@ -49,3 +49,6 @@ site/
 
 # Journaux locaux (traduction de nuit, etc.)
 *.log
+
+# Captures d'écran et vidéos de présentation (peuvent montrer des onglets personnels)
+media/

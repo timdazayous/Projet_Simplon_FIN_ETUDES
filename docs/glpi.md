@@ -76,11 +76,11 @@ Depuis la **racine du dépôt** :
 ```bash
 cp .env.example .env        # puis renseigner GLPI_DB_PASSWORD et GLPI_DB_ROOT_PASSWORD
 docker compose --env-file .env -f infra/glpi/docker-compose.yml up -d
-docker compose -f infra/glpi/docker-compose.yml ps     # les deux services doivent être « running », db « healthy »
-docker compose -f infra/glpi/docker-compose.yml logs -f glpi   # suivre l'installation silencieuse
+docker compose --env-file .env -f infra/glpi/docker-compose.yml ps     # les deux services doivent être « running », db « healthy »
+docker compose --env-file .env -f infra/glpi/docker-compose.yml logs -f glpi   # suivre l'installation silencieuse
 ```
 
-L'option `--env-file .env` est nécessaire parce que le fichier compose n'est pas à la racine : sans elle, Docker chercherait le `.env` dans `infra/glpi/`. Les autres commandes `docker compose` du projet utilisent le même schéma, `--env-file .env` en plus quand elles ont besoin des variables.
+L'option `--env-file .env` est nécessaire parce que le fichier compose n'est pas à la racine : sans elle, Docker chercherait le `.env` dans `infra/glpi/`. Elle est requise pour **toutes** les commandes, y compris `ps`, `logs` et `down` : Docker Compose lit les variables du fichier à chaque commande, et les mots de passe obligatoires manquants le font échouer (« required variable GLPI_DB_PASSWORD is missing a value »). Cette erreur a été constatée au premier démarrage, le 7 novembre 2026, sur une version précédente de cette page.
 
 Ouvrir ensuite <http://127.0.0.1:8082>.
 
@@ -108,7 +108,7 @@ Même sur une machine locale, ce réflexe fait partie de la démarche de sécuri
 
 ```bash
 # Arrêt (les données sont conservées dans les volumes)
-docker compose -f infra/glpi/docker-compose.yml down
+docker compose --env-file .env -f infra/glpi/docker-compose.yml down
 
 # Mise à jour : 1) sauvegarder (voir plus bas) ; 2) changer le tag de l'image dans le fichier compose ;
 # 3) recréer le service. GLPI met son schéma à jour automatiquement au redémarrage.
@@ -116,7 +116,7 @@ docker compose --env-file .env -f infra/glpi/docker-compose.yml pull
 docker compose --env-file .env -f infra/glpi/docker-compose.yml up -d
 
 # Suppression COMPLÈTE, données comprises (irréversible)
-docker compose -f infra/glpi/docker-compose.yml down -v
+docker compose --env-file .env -f infra/glpi/docker-compose.yml down -v
 ```
 
 Rester sur la branche 11.0 : passer à GLPI 12 est une décision à prendre à part, car le schéma de base change entre versions majeures.
@@ -173,19 +173,23 @@ Ce qui reste à faire manuellement n'est volontairement pas automatisé ici : la
 
 ## Mesures au premier démarrage
 
-À compléter avec le développeur lors du premier démarrage réel (le fichier compose n'a été validé que par `docker compose config`, sans lancer de conteneur).
+Relevées le 7 novembre 2026 lors du premier démarrage réel.
 
 | Mesure | Valeur |
 |---|---|
-| Date et machine | _à compléter_ |
-| Durée de téléchargement des images | _à compléter_ |
-| Durée jusqu'à l'état `healthy` de MariaDB | _à compléter_ |
-| Durée de l'installation silencieuse de GLPI | _à compléter_ |
-| RAM au repos (`docker stats --no-stream`) | _à compléter_ |
-| Espace disque des volumes | _à compléter_ |
-| Capture de l'écran de connexion | _à ajouter (sans mot de passe visible)_ |
+| Date et machine | 7 novembre 2026, portable Windows 11, 15,4 Go de RAM, Docker Desktop (VM WSL limitée à 3,8 Go) |
+| Durée de téléchargement des images | 37 s (image GLPI : 1,62 Go) |
+| Durée jusqu'à l'état `healthy` de MariaDB | 13 s |
+| Durée de l'installation silencieuse de GLPI | environ 40 s de plus, jusqu'à la première réponse de la page de connexion |
+| RAM au repos (`docker stats --no-stream`) | 68 Mo pour `glpi-app`, 187 Mo pour `glpi-db` |
+| Espace disque des volumes | 309 Mo pour `db_data`, 1,5 Mo pour `glpi_data` |
+| Capture de l'écran de connexion | faite, conservée hors du dépôt (dossier `media/`, ignoré par Git) |
 
-Commande de mesure : `docker stats --no-stream glpi-app glpi-db`. Les valeurs seront aussi reportées dans le comparatif [Outil de ticketing](decisions/outil-ticketing.md).
+Commande de mesure : `docker stats --no-stream glpi-app glpi-db`.
+
+**Ce qui pèse vraiment** : GLPI et MariaDB n'utilisent qu'environ 255 Mo à eux deux. La machine virtuelle de Docker Desktop réserve en revanche près de 4 Go dès son lancement. Sur ce poste, la RAM libre est descendue à 0,8 Go avec les applications courantes ouvertes, sous le seuil d'arrêt de 1 Go que s'impose le projet, puis remontée à 2 Go un peu plus tard. La stack complète (PostgreSQL, Spark, supervision) demandera donc de surveiller la mémoire, et peut-être d'arrêter GLPI quand il ne sert pas.
+
+L'interface s'affiche en anglais par défaut ; la langue se change dans les préférences de l'utilisateur (ou pour tous dans Configuration > Générale).
 
 ## Sources
 
