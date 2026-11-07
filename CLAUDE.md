@@ -137,7 +137,7 @@ Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https
 État au 2026-10-21 :
 - **Sprint 1** (6 → 19 octobre) : terminé, 15 points sur 18. Compte rendu : `docs/sprints/sprint-01.md`.
 - **Sprint 2** (20 octobre → 2 novembre) : **toutes les Issues terminées** (#22 GLPI en Docker, #5 cadrage, #6 taxonomie et conception du tri, #27 inventaire des jeux publics, #8 première synthèse de veille). Revue et rétrospective à faire le 2 novembre dans `docs/sprints/sprint-02.md`.
-- **Sprint 3** (3 → 16 novembre) : #26 et #13 terminées en avance ; restent #29 récupération et traduction des jeux publics (Sonnet, mesurer la charge du poste sur un échantillon avant tout traitement en masse) et #35 migration Zensical (après le 5 novembre).
+- **Sprint 3** (3 → 16 novembre) : planifié le 2026-11-07. #52 injection GLPI par l'API v2 et #53 extraction SQL + pseudonymisation (une PR), #54 balises et jeu de réglage (Refs #50, option b : ~300 test / ~150 réglage), #35 Zensical. Veille : #55 résumé automatique au sprint 4, #15 plus tard. Synthèses de veille manquantes les semaines du 25 octobre et du 1er novembre.
 - **Backlog** : #15 tri automatique de la veille (optionnel), #24 réévaluer GLPI 12, #30 benchmark des modèles de décision (phase 3), #31 exigences AI Act.
 - **Ensuite** : extraction depuis GLPI (API et SQL), base de données Merise / RGPD, API de données.
 
