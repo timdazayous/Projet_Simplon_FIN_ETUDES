@@ -36,6 +36,8 @@ La version lisible par le code est `config/taxonomy.yaml` : c'est la **référen
 |---|---|---|
 | Symptôme sur un poste, cause dans un autre domaine | La **cause** si elle est connue, sinon le **symptôme** | « Pas d'Internet sur mon PC » : `network` si tout le site est touché, `workstation` si un seul poste |
 | Problème de mot de passe dans un logiciel | `accounts` pour un problème d'identifiant ou de droits, `software` si le logiciel est en panne | « Mot de passe refusé dans l'ERP » : `accounts` |
+| Double authentification | `accounts` : enrôlement, code QR, jeton ou application d'authentification, même si l'outil ressemble à un logiciel | « Impossible d'obtenir le code QR d'Okta Verify » : `accounts` |
+| Droits sur une ressource de messagerie | `messaging` pour une boîte partagée, un calendrier ou une salle de réunion, car ces droits se gèrent dans la messagerie ; `accounts` pour les autres droits (partage de fichiers, application) | « Pas d'accès à la boîte partagée » : `messaging` ; « Accès au lecteur R » : `accounts` |
 | Mail suspect | `security` dès qu'il y a suspicion d'hameçonnage | « Mail étrange de la banque » : `security` |
 | Alerte de supervision | Selon la **ressource concernée**, pas selon l'outil qui alerte | « Disque plein » : `infrastructure` ; « sauvegarde en échec » : `backup` |
 | Échecs de connexion | `security` **par défaut** dès qu'une alerte signale un volume anormal d'échecs (attaque par force brute possible) : le technicien la bascule en `accounts` si la vérification écarte l'attaque. `accounts` pour un compte isolé verrouillé ou un faible nombre de tentatives | Alerte « trop d'échecs de connexion en 10 minutes » : `security` ; « compte verrouillé » : `accounts` |
@@ -62,6 +64,12 @@ Quatre niveaux, déduits de l'**impact** (combien de personnes ou quelle part de
 | `P2` | Haute | Service important dégradé pour plusieurs personnes, **ou** une personne bloquée sans contournement | Messagerie très lente pour un service ; dirigeant sans accès à sa messagerie |
 | `P3` | Moyenne | Gêne réelle, mais un contournement existe ou une seule personne est touchée | Imprimante en panne alors qu'une autre fonctionne ; poste lent |
 | `P4` | Basse | Demande planifiable, question, aucune gêne immédiate | Installer un logiciel la semaine prochaine ; question sur une facture |
+
+Conventions retenues à la relecture des tickets de référence (7 novembre 2026) :
+
+- **Une demande de service est en `P4` par défaut**, et en `P3` seulement si quelqu'un ne peut pas travailler en attendant (nouvel arrivant sans compte, téléphone à configurer pour un utilisateur).
+- **On étiquette ce qui est écrit.** « Connexion Internet » sans autre précision est `P2`, pas `P1` : rien n'indique que tout le site est arrêté. Le technicien relève la priorité après son appel si besoin.
+- **Une vulnérabilité détectée n'est pas un incident de sécurité en cours** : un ticket automatique de scanner de vulnérabilités est un `incident` (comme toute alerte automatique) de priorité `P3` par défaut, le correctif se planifiant.
 
 Correspondance avec GLPI : `P1` = « Très haute » ou « Majeure », `P2` = « Haute », `P3` = « Moyenne », `P4` = « Basse » ou « Très basse ». Pour les alertes de supervision, la priorité vient de la gravité de l'outil, harmonisée par une table de correspondance (voir [Conception du tri](conception-tri.md)).
 
