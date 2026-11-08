@@ -2,6 +2,8 @@
 
 **Issue** : #46 · **Compétences** : C3 (agréger et homogénéiser des sources, jeux d'entraînement et de test sans fuite), C12 (jeux d'entraînement, de validation et de test distincts, évaluation fiable) · **Code** : `src/data/corpus.py`, `scripts/assemble_corpus.py` · **Configuration** : section `corpus` de `config/generator.yaml` · **Date** : 31 octobre 2026
 
+Les sections « Volumes réels » et suivantes datent du 31 octobre 2026 (avant l'Issue #54) ; la section « Convention de balises et jeu de réglage » décrit l'état le plus récent.
+
 Cette page décrit comment les tickets publics traduits et les tickets générés sont réunis en un corpus de classification : un jeu d'entraînement, un jeu de validation et deux jeux de test. Les volumes ci-dessous sont **réels** : ils viennent du rapport `report.json` produit par le script sur le poste du développeur (aucun texte de ticket n'est reproduit ici).
 
 ## Résumé
@@ -206,16 +208,94 @@ Ce que l'on peut en conclure :
 
 Les corrections ne modifient pas automatiquement `test_external.jsonl`, dont les étiquettes viennent des règles de correspondance. Les 50 tickets relus forment un **jeu de référence humain** à part, conservé hors du dépôt (`data/raw/reference/`), qui servira à mesurer le modèle sur des étiquettes vérifiées.
 
+## Convention de balises et jeu de réglage (Issue #54, 7 novembre 2026)
+
+Décision du développeur du 8 novembre 2026 sur les catégories rares : voir « Règle des petites catégories ». Les volumes ci-dessous sont ceux des données réelles.
+
+### Convention de balises
+
+Le contrôle simple a montré que le modèle reconnaît l'origine d'un texte. Chaque source écrivait ses données personnelles à sa façon ; elles suivent maintenant **une seule convention**, celle de tasksource (la seule source réelle, donc la seule gardée telle quelle) : crochets, majuscules. Le code est dans `src/data/tags.py`. Le réglage s'applique à la construction des lignes, avant tout découpage, donc les clés de quasi-doublons portent sur les textes déjà convertis.
+
+Balises relevées dans les sources avant la convention (comptes par motif sur les fichiers réels) :
+
+| Source | Balises ou données relevées | Devient |
+|---|---|---|
+| Public d'entraînement | `<br>` (182 tickets), `<tel_num>` (44), `<acc_num>` (16), `<name>` (4), `<nom>` (1), `<email>` (1), `[Votre nom]` (9), `[nom]` et `[Nom]` (5), `[Your Company]` (1) | saut de ligne, `[PHONE]`, `[ACCOUNT_NUMBER]`, `[NAME]`, `[EMAIL]`, `[COMPANY]` |
+| Test externe tasksource | `[NAME]`, `[COMPANY]`, `[LOCATION]`, `[ADDRESS]`, `[USERNAME]`, `[TICKET ID]`, `[SERVER]`, `[EMAIL]`, `[SOFTWARE]`, `[PHONE]`, `[URL]`, `[IP]`, `[PASSWORD]`, `[MAC_ADDRESS]` ; `[Image]` (8), `[Crédit photographique]` (2), `<IP>` (2) | inchangées, sauf les trois dernières : `[IMAGE]`, `[IMAGE]`, `[IP]` |
+| Généré | adresses électroniques en clair (650 en entraînement), numéros de téléphone fictifs, noms de personnes et d'entreprises, serveurs `XXX-SRV-…`, secrets `FAKE-…`, `[Ticket #12345]` et `#12345` | `[EMAIL]`, `[PHONE]`, `[NAME]`, `[COMPANY]`, `[SERVER]`, `[PASSWORD]`, `[TICKET ID]` |
+
+Balises de la convention : `[NAME]`, `[COMPANY]`, `[LOCATION]`, `[ADDRESS]`, `[USERNAME]`, `[TICKET ID]`, `[SERVER]`, `[EMAIL]`, `[PHONE]`, `[IP]`, `[MAC_ADDRESS]`, `[URL]`, `[SOFTWARE]`, `[PASSWORD]`, `[ACCOUNT_NUMBER]`, `[IMAGE]`. `[URGENT]` (préfixe d'objet écrit par une personne) n'est pas une balise de donnée et reste tel quel.
+
+Choix :
+
+- **Les données fictives du générateur sont aussi remplacées** (noms, entreprises, téléphones, serveurs), pas seulement les adresses : sinon le modèle apprend « un nom propre en clair = texte généré ». Alternative écartée : ne remplacer que les adresses électroniques, comme le demandait le minimum de l'Issue, ce qui laissait les noms et les entreprises en clair dans les textes générés.
+- **Les prénoms et noms ne sont remplacés que dans les textes générés** : dans un texte réel, un prénom est déjà masqué par la source, et un mot comme « Claire » pourrait être courant.
+- Le générateur lui-même n'est pas modifié (même graine, mêmes tirages) : la conversion est faite sur les textes produits.
+- Le rapport donne, par jeu, le nombre de chaque balise et le nombre de lignes qui contiennent encore une ancienne balise (`tag_convention`) : **0** pour tous les jeux.
+
+### Découpage du test externe
+
+Les 457 tickets tasksource sont découpés en un **test** (319) et un **jeu de réglage** (138), avec `split_external` (`src/data/corpus.py`) :
+
+- stratifié par catégorie, graine 42 (part de réglage 0,33 dans `config/generator.yaml`) ;
+- les quasi-doublons (même `group_key`) restent du même côté ;
+- les **50 tickets relus**, et tout ticket de même `group_key`, restent dans le test (leur identifiant est lu dans la colonne « Identifiant » du fichier de relecture, option `--reference`) ;
+- le jeu de réglage sert à **choisir** (corpus, modèle, réglages). Le test ne sert plus à choisir quoi que ce soit.
+
+### Règle des petites catégories (décision du développeur, 8 novembre 2026)
+
+- **Moins de 20 vrais tickets au total : tout au test, rien au réglage.** Le seuil est le paramètre `min_total_for_tuning` de `config/generator.yaml` (pas une valeur en dur). Il touche `infrastructure` (13), `network` (13), `security` (9) et `workstation` (5).
+- **Moins de 10 tickets de test : avertissement, pas d'arrêt.** Le paramètre `min_test_per_category` ne bloque plus le script (code de sortie 0). Le script affiche un avertissement, et `report.json` (section `external_split`, clés `indicative_score_categories` et `indicative_score_note`) liste ces catégories avec la mention « score indicatif ». Sur les données réelles : `security` (9) et `workstation` (5).
+- Première version de l'Issue : le script s'arrêtait sous 10 tickets de test. Ce seuil était inatteignable pour `security` et `workstation` (9 et 5 tickets en tout), d'où la décision.
+
+Volumes réels (le test fait 319 tickets, le réglage 138) :
+
+| Catégorie | Test | Réglage | Lecture du score au test |
+|---|---|---|---|
+| `accounts` | 156 | 77 | normale |
+| `messaging` | 49 | 24 | normale |
+| `software` | 36 | 17 | normale |
+| `printing` | 21 | 11 | normale |
+| `telephony` | 17 | 9 | normale |
+| `infrastructure` | 13 | 0 | normale, pas de réglage |
+| `network` | 13 | 0 | normale, pas de réglage |
+| `security` | 9 | 0 | **score indicatif** |
+| `workstation` | 5 | 0 | **score indicatif** |
+
+Réserves :
+
+- Les scores de `security`, de `workstation` et de toute catégorie sous 10 tickets de test sont **indicatifs** : un seul ticket change le score de plusieurs points.
+- Ces catégories pourront aussi être présentées sur le **test généré**, avec la réserve habituelle (test optimiste, voir « Limites »).
+- `infrastructure`, `network`, `security` et `workstation` n'ont **aucun ticket au réglage** : le réglage ne permet pas de choisir pour ces catégories.
+
+### Absence de fuite
+
+Le contrôle des fuites couvre maintenant **dix paires** (cinq jeux : entraînement, validation, réglage, test externe, test généré) : textes identiques et clés de quasi-doublon communes sont à 0 pour toutes (`leak_check` dans `report.json`).
+
+### Mesure avant et après la convention (jeu de réglage uniquement)
+
+Contrôle simple (TF-IDF avec mots et paires de mots, régression logistique, script jetable hors dépôt) entraîné sur le jeu d'entraînement, mesuré sur les **138 mêmes tickets de réglage**. Le test externe n'est pas utilisé. **Le macro-F1 ne porte que sur les 5 catégories présentes au réglage** (`accounts`, `messaging`, `software`, `printing`, `telephony`) : il n'est donc pas comparable aux 0,30 mesurés plus haut sur le test externe, qui portait sur toutes les catégories.
+
+| Corpus d'entraînement | Macro-F1 sur le réglage | Exactitude sur le réglage |
+|---|---|---|
+| Avant la convention | 0,43 | 0,36 |
+| Après la convention | 0,45 | 0,51 |
+
+Avec la validation ajoutée à l'entraînement : 0,40 et 0,36 avant, 0,45 et 0,48 après.
+
+À lire avec prudence : 138 tickets seulement, dont 77 `accounts`. L'exactitude gagne 15 points, le macro-F1 seulement 1 à 5 : la convention aide, elle ne règle pas l'écart avec les vrais tickets (suite dans #50). L'entraînement « après » diffère de 2 lignes du « avant » (les clés de quasi-doublons des textes générés ont changé).
+
 ## Reproduire
 
 Prérequis : les trois fichiers traduits sont dans `data/raw/public/` (voir [Récupération et traduction](recuperation-traduction.md)). Aucune donnée n'est dans le dépôt.
 
 ```bash
-# Corpus : 4 fichiers JSONL et report.json dans data/processed/corpus/
-uv run python scripts/assemble_corpus.py
+# Corpus : 5 fichiers JSONL et report.json dans data/processed/corpus/
+# (groupe data : lecture du fichier Excel de relecture)
+uv run --group data python scripts/assemble_corpus.py
 
 # Autres dossiers
-uv run python scripts/assemble_corpus.py --public-dir data/raw/public --out-dir data/processed/corpus
+uv run --group data python scripts/assemble_corpus.py --public-dir data/raw/public     --out-dir data/processed/corpus --reference data/raw/reference/relecture_50_tickets.xlsx
 
 # Fichier de relecture (groupe data : openpyxl)
 uv run --group data python scripts/prepare_reference_review.py --output relecture.xlsx
@@ -226,7 +306,7 @@ L'assemblage prend quelques secondes et deux exécutions donnent des fichiers **
 Tests (sans donnée réelle, sans réseau) :
 
 ```bash
-uv run --group dev pytest tests/test_corpus.py tests/test_generator_categories.py tests/test_prepare_reference_review.py
+uv run --group dev pytest tests/test_corpus.py tests/test_tags.py tests/test_generator_categories.py tests/test_prepare_reference_review.py
 ```
 
 ## Ce qui n'a pas été vérifié

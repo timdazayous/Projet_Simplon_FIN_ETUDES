@@ -21,6 +21,10 @@ volumes:
 corpus:
   total: 6000             # messages d'entraînement + validation (public + généré)
   validation_share: 0.15  # 85 / 15, stratifié par catégorie
+  tuning:                 # vrais tickets tasksource gardés pour choisir (Issue #54)
+    share: 0.33           # 150 tickets sur 457 pour le réglage, le reste pour le test
+    min_total_for_tuning: 20   # une catégorie sous ce total va entièrement au test (décision 2026-11-08)
+    min_test_per_category: 10  # sous ce seuil de test : avertissement, score indicatif (sans arrêt)
   test_generated:         # test généré (optimiste : modèles de phrases partagés avec l'entraînement)
     seed: 4242            # autre graine que l'entraînement : autres clients fictifs, autres tirages
     per_category:         # catégories sans vrai ticket de test

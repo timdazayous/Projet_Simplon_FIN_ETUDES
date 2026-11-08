@@ -15,7 +15,11 @@ Method (see ``docs/donnees/corpus.md``):
 5. A second generated test set, from another seed, covers the categories that have no real test
    ticket. It is optimistic: the phrase templates are shared with the training texts.
 
-Texts are never modified: pseudonymisation and secret tags stay exactly as they are.
+6. Issue #54: one tag convention for every source (``src/data/tags.py``), applied to the rows
+   when they are built; the 457 external tickets are split into a test (about 300, with the 50
+   tickets reviewed by the developer) and a tuning set (about 150) that is used to choose.
+
+Apart from the tag convention, texts are never modified.
 """
 
 from __future__ import annotations
@@ -30,12 +34,13 @@ from typing import Any
 from src.data import templates as tpl
 from src.data.generator import generate, load_config
 from src.data.label_mapping import LabelMapping
+from src.data.tags import apply_convention, count_tags, leftover_tags
 from src.data.taxonomy import Taxonomy
 
 KEY_LENGTH = 50  # a "near-duplicate" shares the first 50 normalised characters
 _TAG = re.compile(r"\[[A-Za-z][A-Za-z0-9 _]*\]")
 FIELDS = ("category", "type", "priority", "doubtful")
-SUBSETS = ("train", "validation", "test_external", "test_generated")
+SUBSETS = ("train", "validation", "tuning", "test_external", "test_generated")
 OVERSAMPLING = 4  # test_generated: draw more texts than needed, then drop the ones seen in training
 
 
@@ -101,7 +106,9 @@ def public_rows(
                 {
                     "id": item["id"],
                     "source": "public",
-                    "text": join_text(item.get("subject_fr", ""), item["body_fr"]),
+                    "text": apply_convention(
+                        join_text(item.get("subject_fr", ""), item["body_fr"])
+                    ),
                     "category": proposal.category,
                     "type": proposal.type,
                     "priority": proposal.priority,
@@ -117,7 +124,7 @@ def generated_rows(tickets: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
         {
             "id": t["id"],
             "source": "generated",
-            "text": f"{t['subject']}\n{t['body']}",
+            "text": apply_convention(f"{t['subject']}\n{t['body']}", fictitious=True),
             "category": t["category"],
             "type": t["type"],
             "priority": t["priority"],
@@ -197,6 +204,61 @@ def stratified_group_split(
         train.extend(r for r in validation if group_key(r) in shared)
         validation = [r for r in validation if group_key(r) not in shared]
     return train, validation
+
+
+def split_external(
+    rows: list[dict[str, Any]],
+    reference_ids: Iterable[str],
+    *,
+    tuning_share: float,
+    seed: int,
+    min_total_for_tuning: int = 0,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Split the real external tickets into ``(test, tuning)``.
+
+    Stratified by category; near-duplicates (same ``group_key``) stay on the same side; a group
+    that contains a reviewed ticket (``reference_ids``) goes entirely to the test. A category with
+    fewer than ``min_total_for_tuning`` tickets in all goes entirely to the test (decision of
+    2026-11-08: too few tickets to share them).
+    """
+    reference = set(reference_ids)
+    unknown = reference - {r["id"] for r in rows}
+    if unknown:
+        raise ValueError(f"Reviewed tickets missing from the external tickets: {sorted(unknown)}")
+    forced_keys = {group_key(r) for r in rows if r["id"] in reference}
+    by_category: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        by_category[row["category"]].append(row)
+    test: list[dict[str, Any]] = []
+    tuning: list[dict[str, Any]] = []
+    for category in sorted(by_category):
+        groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for row in sorted(by_category[category], key=lambda r: r["id"]):
+            groups[group_key(row)].append(row)
+        free = [groups[key] for key in sorted(groups) if key not in forced_keys]
+        random.Random(f"{seed}:tuning:{category}").shuffle(free)
+        size = len(by_category[category])
+        wanted = 0 if size < min_total_for_tuning else round(tuning_share * size)
+        taken = 0
+        for group in free:
+            if taken + len(group) <= wanted:
+                tuning.extend(group)
+                taken += len(group)
+            else:
+                test.extend(group)
+        test.extend(r for key in sorted(groups) if key in forced_keys for r in groups[key])
+    # A key shared by two categories goes entirely to the test.
+    shared = {group_key(r) for r in test} & {group_key(r) for r in tuning}
+    if shared:
+        test.extend(r for r in tuning if group_key(r) in shared)
+        tuning = [r for r in tuning if group_key(r) not in shared]
+    return test, tuning
+
+
+def low_test_categories(test: list[dict[str, Any]], min_test: int) -> dict[str, int]:
+    """Categories present in the test with fewer than ``min_test`` tickets (score indicative)."""
+    counts = Counter(r["category"] for r in test)
+    return {c: n for c, n in sorted(counts.items()) if n < min_test}
 
 
 # --------------------------------------------------------------------------- report
@@ -294,17 +356,30 @@ def assemble(
     config_path: str | Path,
     taxonomy: Taxonomy,
     mapping: LabelMapping,
+    reference_ids: Iterable[str],
 ) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
-    """Build the four subsets and the report from the raw translated public tickets."""
+    """Build the five subsets and the report from the raw translated public tickets.
+
+    ``reference_ids``: the tickets reviewed by the developer, which must stay in the test.
+    """
+    reference_ids = frozenset(reference_ids)
     cfg = load_config(config_path)
     corpus_cfg = cfg["corpus"]
     seed = int(cfg["seed"])
 
     train_pool, dropped_train = public_rows(public_train, "customer_support", mapping)
-    test_external, dropped_external = public_rows(external, "it_support", mapping)
+    external_rows, dropped_external = public_rows(external, "it_support", mapping)
+    tuning_cfg = corpus_cfg["tuning"]
+    test_external, tuning = split_external(
+        external_rows,
+        reference_ids,
+        tuning_share=float(tuning_cfg["share"]),
+        seed=seed,
+        min_total_for_tuning=int(tuning_cfg["min_total_for_tuning"]),
+    )
 
     # The external test never enters the training: remove look-alikes from the training pool.
-    external_keys = {template_key(r["text"]) for r in test_external}
+    external_keys = {template_key(r["text"]) for r in external_rows}
     kept_pool = [r for r in train_pool if template_key(r["text"]) not in external_keys]
     removed_like_external = len(train_pool) - len(kept_pool)
 
@@ -331,7 +406,7 @@ def assemble(
     # already seen in the training or validation sets.
     test_cfg = corpus_cfg["test_generated"]
     seen = {normalise_key(r["text"]) for r in (*train, *validation)}
-    seen |= {normalise_key(r["text"]) for r in test_external}
+    seen |= {normalise_key(r["text"]) for r in external_rows}
     drawn, _ = generate(
         config_path,
         seed=int(test_cfg["seed"]),
@@ -361,9 +436,11 @@ def assemble(
     subsets = {
         "train": sorted(train, key=lambda r: r["id"]),
         "validation": sorted(validation, key=lambda r: r["id"]),
+        "tuning": sorted(tuning, key=lambda r: r["id"]),
         "test_external": sorted(test_external, key=lambda r: r["id"]),
         "test_generated": test_generated,
     }
+    tuned = {r["category"] for r in tuning}
     leaks = leak_check(subsets)
     if any(v for pair in leaks.values() for v in pair.values()):
         raise ValueError(f"Leak between subsets: {leaks}")
@@ -382,6 +459,33 @@ def assemble(
             "train_pool_like_external_test": removed_like_external,
         },
         "generated_diversity_train": generated_diversity(tickets),
+        "external_split": {
+            "tuning_share": tuning_cfg["share"],
+            "min_total_for_tuning": tuning_cfg["min_total_for_tuning"],
+            "min_test_per_category": tuning_cfg["min_test_per_category"],
+            "categories_without_tuning": sorted(
+                c for c in {r["category"] for r in test_external} if c not in tuned
+            ),
+            "indicative_score_categories": low_test_categories(
+                test_external, int(tuning_cfg["min_test_per_category"])
+            ),
+            "indicative_score_note": "score indicatif (moins de min_test_per_category tickets)",
+            "reference_tickets_in_test": len(set(reference_ids)),
+            "by_category": {
+                c: {
+                    "tuning": sum(1 for r in tuning if r["category"] == c),
+                    "test": sum(1 for r in test_external if r["category"] == c),
+                }
+                for c in sorted({r["category"] for r in external_rows})
+            },
+        },
+        "tag_convention": {
+            name: {
+                "tags": count_tags([r["text"] for r in rows]),
+                "rows_with_leftover_tags": sum(1 for r in rows if leftover_tags(r["text"])),
+            }
+            for name, rows in subsets.items()
+        },
         "subsets": {name: describe(rows) for name, rows in subsets.items()},
         "leak_check": leaks,
     }
