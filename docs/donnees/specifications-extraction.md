@@ -21,7 +21,7 @@ Le référentiel exige une extraction depuis **cinq types de sources** : un fich
 | Fichier | Jeux de tickets publics sur Hugging Face (CSV et Parquet) | Tickets réels ou réalistes, étiquetés, pour l'entraînement et le test externe | **Réalisé** (#29) |
 | API REST | API publique **endoflife.date** | Dates de fin de support des systèmes et logiciels | **Réalisé** (#41) |
 | API REST (complément) | API JSON du **CERT-FR** | Avis de sécurité : produits touchés, versions, CVE, recommandations | En cours (#42) |
-| Base de données | Base **MariaDB de GLPI**, en SQL direct | Tickets, suivis et catégories de l'outil de ticketing | À réaliser après le premier démarrage de GLPI |
+| Base de données | Base **MariaDB de GLPI**, en SQL direct | Tickets, suivis et catégories de l'outil de ticketing | **Réalisé** (#53), essai réel à faire avec le compte en lecture seule : voir [Extraction SQL des tickets GLPI](glpi-extraction-sql.md) |
 | Scraping | Pages publiques **Windows release health** de Microsoft Learn | Problèmes connus des mises à jour Windows, statut, KB d'origine et de résolution | À réaliser (#45) |
 | Big data | **Historique Parquet** interrogé avec **Spark SQL** | Plusieurs mois de tickets et d'alertes, pour l'analyse à grande échelle | À réaliser ; volume à fixer selon le poste |
 
@@ -85,13 +85,13 @@ Réalisée dans #41. Le détail figure dans [Extraction des dates de fin de supp
 | Données | Tickets (`glpi_tickets`), catégories (`glpi_itilcategories`), suivis (`glpi_itilfollowups`), entités clientes (`glpi_entities`), utilisateurs demandeurs (`glpi_users`, colonnes strictement nécessaires) |
 | Pourquoi | C'est l'outil de ticketing du MSP simulé : les tickets générés y sont injectés, puis relus comme dans un vrai système d'information |
 | Accès | MariaDB 10.11 sur `127.0.0.1:3307`, avec un **compte dédié en lecture seule** (`SELECT` sur la base `glpi` uniquement), dont le mot de passe est dans `.env` |
-| Requêtes | SQL écrit à la main, versionné dans `sql/`, avec jointures entre tickets, catégories et entités, et filtre sur la date de modification pour une **extraction incrémentale** |
+| Requêtes | SQL écrit à la main, versionné dans `sql/glpi/`, avec jointures entre tickets, catégories et entités, et filtre sur la date de modification pour une **extraction incrémentale** |
 | Contraintes | Schéma de plusieurs centaines de tables, documenté sur dbdocs.io ; moteur MariaDB alors que la base du projet est PostgreSQL, d'où une vraie transformation entre moteurs ; données personnelles dans le texte libre |
 | RGPD | Pseudonymisation des personnes et masquage des secrets **à l'import**, avant tout autre traitement ; seules les colonnes utiles sont lues |
 | Sortie | `data/raw/glpi/tickets.jsonl` |
 | Fréquence | Quotidienne (simulée), incrémentale |
 
-Les requêtes, leurs choix de sélection, de jointure et de filtrage, ainsi que leurs optimisations (index utilisés, projection des colonnes), seront documentés pour C2 avec l'Issue d'extraction.
+Les requêtes, leurs choix de sélection, de jointure et de filtrage, ainsi que leurs optimisations (index utilisés, projection des colonnes), sont documentés pour C2 dans [Extraction SQL des tickets GLPI](glpi-extraction-sql.md).
 
 ## Source 2 bis : API REST complémentaire (avis du CERT-FR)
 
@@ -179,8 +179,8 @@ Règles d'homogénéisation :
 | Source 2 : extraction endoflife.date | — | #41 (terminée) |
 | Source 2 bis : API du CERT-FR | — | #42 |
 | Source 4 : scraping des problèmes connus de Windows | — | #45 |
-| Injection des tickets générés dans GLPI (API v2) | Premier démarrage de GLPI | À créer |
-| Source 3 : extraction SQL de GLPI | Injection | À créer |
+| Injection des tickets générés dans GLPI (API v2) | Premier démarrage de GLPI | #52 (réalisée, 300 tickets injectés ; voir [GLPI](../glpi.md)) |
+| Source 3 : extraction SQL de GLPI | Injection | #53 (réalisée ; essai réel en attente du compte en lecture seule) |
 | Source 5 : historique Parquet et Spark SQL | Décision sur le volume | À créer |
 | Agrégation en un jeu unique | Les cinq sources | À créer |
 

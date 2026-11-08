@@ -46,6 +46,7 @@ nav:
       - Récupération et traduction des jeux publics: donnees/recuperation-traduction.md
       - Assemblage du corpus de classification: donnees/corpus.md
       - Spécifications de l'extraction: donnees/specifications-extraction.md
+      - Extraction SQL des tickets GLPI: donnees/glpi-extraction-sql.md
       - Dates de fin de support (endoflife.date): donnees/endoflife.md
       - Avis de sécurité du CERT-FR (API JSON): donnees/certfr.md
       - Problèmes connus de Windows (scraping): donnees/windows-known-issues.md

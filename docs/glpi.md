@@ -151,27 +151,151 @@ Restauration de la base : `docker exec -i glpi-db sh -c 'mariadb -uroot -p"$MARI
 
 Les fichiers de sauvegarde contiennent des données de tickets : ne **jamais** les committer (le dépôt est public) ; les ranger hors du dépôt.
 
-## Accès SQL en lecture (futures extractions)
+## Accès SQL en lecture et compte dédié
 
-La base est joignable depuis la machine hôte sur `127.0.0.1:3307` (base `glpi`). Les tables utiles pour les tickets s'appellent `glpi_tickets`, `glpi_itilcategories`, `glpi_itilfollowups`, `glpi_entities`… ; le schéma complet de GLPI 11 est documenté sur <https://dbdocs.io/glpi/GLPI-11>. Les tables réellement utilisées seront documentées avec le modèle de données (C2).
+La base est joignable depuis la machine hôte sur `127.0.0.1:3307` (base `glpi`). Les tables utiles pour les tickets s'appellent `glpi_tickets`, `glpi_itilcategories`, `glpi_itilfollowups`, `glpi_entities`… ; le schéma complet de GLPI 11 est documenté sur <https://dbdocs.io/glpi/GLPI-11>. Les requêtes d'extraction et leurs optimisations sont décrites dans [Extraction SQL des tickets GLPI](donnees/glpi-extraction-sql.md).
+
+Le compte `root` de MariaDB ne sert qu'à l'administration à la main (la commande ci-dessous lit son mot de passe dans le conteneur) ; il n'est **jamais** utilisé dans du code versionné.
 
 ```bash
 docker exec -it glpi-db sh -c 'mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" glpi'
 ```
 
-**Prévu, non réalisé ici** : un compte MariaDB **en lecture seule** (`SELECT` uniquement sur la base `glpi`) sera créé pour les scripts d'extraction, afin de ne pas leur donner les droits du compte de GLPI (principe du moindre privilège, rôles séparés application / lecture seule). Tant qu'il n'existe pas, ne pas utiliser le compte `root` dans du code versionné.
+### Créer le compte en lecture seule et la clé de pseudonymisation
 
-## API v2 : étapes manuelles (décrites, non réalisées)
+Principe du moindre privilège : les scripts d'extraction utilisent un compte qui ne peut que **lire**, et seulement six tables. Le fichier [`sql/glpi/create_reader.sql`](https://github.com/timdazayous/Projet_Simplon_FIN_ETUDES/blob/main/sql/glpi/create_reader.sql) le crée sans jamais contenir son mot de passe : le script `scripts/create_glpi_reader.py` lit le nom et le mot de passe dans `.env` et les transmet à `mariadb` par l'**entrée standard** (un mot de passe en argument de commande serait visible dans la liste des processus).
 
-L'API v2 de GLPI est servie sous `/api.php/` ; la documentation interactive (Swagger) est à `/api.php/doc`. Elle utilise **OAuth2** : avant tout appel, il faut enregistrer un client.
+À faire **une seule fois**, depuis la racine du dépôt, par le développeur :
 
-1. Dans GLPI : **Configuration > Clients OAuth**, créer un client. GLPI génère un identifiant (`client_id`) et un secret (`client_secret`).
-2. Choisir le type d'autorisation **Password**, recommandé pour les scripts automatisés. (Authorization Code est prévu pour les applications avec utilisateur ; Client Credentials ne couvre que l'inventaire.)
-3. Noter `client_id` et `client_secret` **dans le `.env`** (jamais dans le dépôt). Les noms de variables seront fixés avec l'Issue d'extraction.
-4. Obtenir un jeton par une requête POST sur `/api.php/token`, avec l'identifiant et le mot de passe d'un utilisateur GLPI dédié (à créer, droits minimaux) et le client OAuth. Les paramètres exacts (portées, format) sont à confirmer dans le Swagger de l'instance.
-5. Tester sur un ticket créé à la main avant d'écrire le script d'extraction.
+1. **Générer le mot de passe du compte et la clé de pseudonymisation**, en les ajoutant à `.env` sans les afficher (la sortie est redirigée vers le fichier). Vérifier d'abord que la dernière ligne de `.env` se termine par un retour à la ligne.
 
-Ce qui reste à faire manuellement n'est volontairement pas automatisé ici : la création du client OAuth se fait dans l'interface et produit un secret qui ne doit pas être versionné.
+    ```bash
+    uv run python -c "import secrets; print(f'GLPI_DB_READER_USER=glpi_reader\nGLPI_DB_READER_PASSWORD={secrets.token_urlsafe(24)}\nPSEUDONYMIZATION_KEY={secrets.token_hex(32)}')" >> .env
+    ```
+
+    Le mot de passe fait 32 caractères et la clé 64 caractères hexadécimaux (256 bits). **Sauvegarder la clé hors du dépôt**, par exemple dans le gestionnaire de mots de passe : si elle est perdue ou changée, tous les pseudonymes changent et les anciennes extractions ne se rapprochent plus des nouvelles. Elle ne permet pas de retrouver une personne : on ne peut pas inverser un HMAC.
+
+2. **Créer le compte** (le conteneur `glpi-db` doit tourner) :
+
+    ```bash
+    uv run python scripts/create_glpi_reader.py
+    ```
+
+    Le script affiche les droits accordés, uniquement des lignes `GRANT SELECT`. Il peut être relancé : il remet à jour le mot de passe et les droits.
+
+3. **Vérifier** le résultat : `uv run python scripts/extract_glpi_sql.py --explain` doit réussir (le plan s'écrit dans `data/raw/glpi/explain.txt`).
+
+Droits accordés :
+
+| Table | Droit | Raison |
+|---|---|---|
+| `glpi_tickets`, `glpi_itilcategories`, `glpi_entities`, `glpi_itilfollowups`, `glpi_tickets_users` | `SELECT` | Données de l'extraction |
+| `glpi_users` | `SELECT` sur les colonnes `id`, `firstname`, `realname` seulement | Les noms servent à masquer le texte libre. Le hachage du mot de passe et les jetons d'API de la table restent illisibles. |
+| Toutes les autres | aucun | Configuration, jetons, mots de passe… |
+
+Le compte est limité à 2 connexions simultanées. Son hôte est `%` parce que, vu depuis le conteneur, le client arrive avec l'adresse de la passerelle Docker et non `127.0.0.1` ; le port 3307 n'est de toute façon publié que sur `127.0.0.1`. **Alternative écartée** : `SELECT` sur toute la base `glpi`, plus simple mais qui donnerait accès aux hachages de mots de passe de GLPI.
+
+Ces droits ont été vérifiés le 8 novembre 2026 sur une base MariaDB 10.11.19 jetable, chargée avec le schéma officiel de GLPI 11 : lecture de `glpi_tickets` acceptée, lecture de `glpi_users.password` refusée (erreur 1143), lecture de `glpi_configs` refusée (1142), `UPDATE` et `DELETE` refusés (1142).
+
+Dépannage : si l'étape 2 échoue sans détail (le script n'affiche pas les messages d'erreur, qui pourraient citer une partie de la commande), exécuter à la main `docker exec -i glpi-db sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" mariadb -uroot glpi -e "SELECT VERSION()"'` pour vérifier que le conteneur répond.
+
+## API v2 : mise en place et injection de tickets
+
+Réalisé le 8 novembre 2026 (Issue #52). L'API v2 de GLPI est servie sous `/api.php/` ; la documentation interactive (Swagger) est à `/api.php/doc`, et sa version JSON à `/api.php/doc.json`. Elle utilise **OAuth2**.
+
+### Configuration dans GLPI (faite à la main, une fois)
+
+| Élément | Choix | Raison |
+|---|---|---|
+| API REST historique (v1) | **Désactivée** | Surface d'attaque réduite : un seul point d'entrée à surveiller, |
+| API v2 | Activée | Seule utilisée |
+| Profil `API injection` | Clone du profil Technicien, plus : Tickets (créer, lire, modifier), Catégories ITIL (créer, lire), Entités (créer, lire) | Moindre privilège : pas de suppression, pas d'administration |
+| Utilisateur d'API | Compte dédié `svc-injection`, profil `API injection` sur la Root entity en récursif | Distinct du Super-Admin : si le secret fuit, les dégâts restent limités à la création de tickets |
+| Client OAuth | Type d'autorisation **Password**, portée `api` seule, sans restriction d'adresse IP | Les scripts se connectent avec un utilisateur et un mot de passe. Docker présente l'hôte sous une autre adresse que `127.0.0.1`, d'où l'absence de restriction (le port n'est publié que sur `127.0.0.1`). |
+
+Les cinq variables `GLPI_API_URL`, `GLPI_OAUTH_CLIENT_ID`, `GLPI_OAUTH_CLIENT_SECRET`, `GLPI_API_USER` et `GLPI_API_PASSWORD` sont dans `.env` (jamais dans le dépôt). Le script refuse une adresse en `http://` vers une autre machine que la machine locale, pour qu'un mot de passe ne circule jamais en clair sur un réseau.
+
+### Ce qui a été confirmé dans le Swagger de l'instance
+
+| Sujet | Constat |
+|---|---|
+| Jeton | `POST /api.php/token`, **formulaire** (`application/x-www-form-urlencoded`, pas du JSON) : `grant_type=password`, `client_id`, `client_secret`, `username`, `password`, `scope=api`. Réponse 200 : `token_type` Bearer, `access_token`, `refresh_token`, `expires_in` = 3600. |
+| Ressources | Sous `/api.php/v2/…` (le préfixe `/v2` n'est pas dans l'adresse du jeton) : `/Assistance/Ticket`, `/Dropdowns/ITILCategory`, `/Administration/Entity`. |
+| Création | `POST` avec un corps JSON, réponse 201 : `{"id": …, "href": …}`. |
+| Lecture d'une liste | `GET` avec `start`, `limit`, `filter` (syntaxe RSQL, par exemple `external_id=like=GEN-T-*`). Réponse 200 ou **206** (contenu partiel) avec l'en-tête `Content-Range` : un 206 n'est pas une erreur. |
+| Champ `external_id` | Écrivable à la création et filtrable : il porte l'identifiant d'origine `GEN-T-…`. |
+| Dates `date` et `date_creation` | Écrivables : les tickets gardent leur date de création générée (janvier à mai 2026). |
+| Date `date_mod` | **Non respectée** : GLPI la fixe à l'instant de l'injection. C'est utile pour l'extraction incrémentale, qui filtre sur cette colonne. |
+| Priorité | GLPI la recalcule à partir de l'urgence et de l'impact. Donner la même valeur aux trois champs donne la valeur voulue (vérifié sur les 300 tickets de l'essai : aucun écart). |
+
+L'ancienne remarque « l'ancienne API v1 reste disponible mais n'est pas utilisée » est donc remplacée : la v1 est désactivée.
+
+### Correspondances
+
+| Champ du projet | Champ GLPI | Valeurs |
+|---|---|---|
+| Priorité `P1` / `P2` / `P3` / `P4` | `priority`, `urgency`, `impact` | 5 (très haute) / 4 (haute) / 3 (moyenne) / 2 (basse). La valeur 1 (très basse) n'est jamais écrite. |
+| Type `incident` | `type` | 1 (incident) |
+| Types `service_request` et `information` | `type` | 2 (demande). **GLPI n'a que deux types** : la différence entre demande de service et demande d'information est perdue à l'injection, et l'extraction rend toujours `service_request`. |
+| Catégorie (12) | Catégorie ITIL, champ `code` = clé de `config/taxonomy.yaml` | Reconnue par son `code` : renommer le libellé dans GLPI ne crée pas de doublon. |
+| Client (60 environ) | Entité sous la Root entity | Voir « Écart constaté sur les entités ». |
+| Identifiant `GEN-T-…` | `external_id` | Traçabilité entre le ticket généré et le ticket GLPI. |
+| Sujet, corps | `name`, `content` | Le texte est échappé puis mis en paragraphes HTML (GLPI stocke du HTML). |
+| Date de création | `date`, `date_creation` | UTC, ISO 8601 avec décalage. |
+| Canal, équipe, demandeur | non transmis | Voir « Limites ». |
+
+### Fonctionnement du script
+
+```bash
+uv run python scripts/inject_glpi.py --dry-run                 # lit GLPI, ne crée rien
+uv run python scripts/inject_glpi.py --count 5                 # premiers essais
+uv run python scripts/inject_glpi.py --count 300               # série complète (par défaut)
+```
+
+Options : `--env-file` (défaut `.env`), `--seed` (défaut 42), `--pool` (taille de la série générée, défaut 300), `--count` (combien de tickets de la série injecter), `--dry-run`, `--no-entities`.
+
+**Pourquoi `--pool` et `--count` séparés.** Les identifiants `GEN-T-xxxxxx` sont numérotés dans l'ordre des dates à l'intérieur d'une série. Générer 5 tickets puis 300 donnerait des identifiants identiques pour des tickets différents. Avec une série fixe de `--pool` tickets, `--count 5` injecte les 5 premiers et `--count 300` ajoute les autres, sans doublon.
+
+Déroulement : lecture de la configuration, génération de la série (déterministe pour une graine donnée), création des 12 catégories et des entités manquantes, lecture des `external_id` déjà présents, création des tickets absents, rapport `data/raw/glpi/injection_report.json` (compteurs seulement, jamais de contenu de ticket).
+
+Codes de sortie : 0 réussite, 1 certains tickets en échec, 2 option ou configuration invalide, 3 jeton refusé, 4 GLPI injoignable, 5 droit manquant (403), 6 entité créée sans nom.
+
+Choix techniques :
+
+- **OAuth2, jeton renouvelé.** Le jeton dure une heure. Le client le renouvelle 2 minutes avant l'expiration, et une fois de plus si le serveur répond 401. Un refus du serveur de jetons (mauvais mot de passe) arrête tout sans nouvelle tentative, pour ne pas bloquer le compte.
+- **Erreurs passagères.** Les erreurs 429 et 5xx ou réseau sont réessayées avec une attente qui double (2 s, 4 s, 8 s, 16 s) ; l'en-tête `Retry-After` est respecté.
+- **Une création n'est jamais répétée après une erreur 5xx ou un délai dépassé** : le ticket a peut-être été créé, et le répéter le doublerait. Seuls une réponse 429 ou une connexion refusée (la requête n'est pas partie) sont réessayés. Le script étant idempotent, le relancer répare les échecs.
+- **Idempotence.** Avant de créer, le script lit les `external_id` déjà présents. Relancé, il ne crée rien. **Alternative écartée** : vérifier ticket par ticket (une requête de plus par ticket).
+- **Séquentiel.** Un seul appel à la fois : la durée mesurée (voir ci-dessous) ne justifie pas la complexité d'envois parallèles.
+
+### Essai réel du 8 novembre 2026
+
+| Mesure | Valeur |
+|---|---|
+| Machine | Portable Windows 11, 15,4 Go de RAM, 4,6 Go libres avant l'essai |
+| Tickets injectés | 300 (graine 42), répartis du 5 janvier à début mai 2026 |
+| Durée de l'injection de 280 tickets | 16,6 s, soit environ 0,06 s par ticket (283 requêtes, 1 jeton, 0 reprise, 0 échec) |
+| Premiers essais | 5 tickets en 1,7 s (25 requêtes) ; 15 tickets en 1,4 s |
+| Idempotence | Deuxième lancement sur les mêmes 5 tickets : 0 création, 5 « déjà présents » |
+| RAM des conteneurs (`docker stats --no-stream`) | Avant : `glpi-app` 294 Mo, `glpi-db` 181 Mo. Pendant : 289 Mo et 182 Mo (CPU 65 % et 25 %). Après : 310 Mo et 183 Mo. |
+| Contrôle des données | Les 300 tickets lus par l'API : 300 `external_id` distincts, priorité, type et date de création identiques à ceux générés (0 écart) |
+
+### Écart constaté sur les entités
+
+Les entités clientes **ne se créent pas correctement** avec le profil `API injection` : `POST /Administration/Entity` répond 201, mais l'entité lue ensuite n'a ni nom, ni commentaire, ni autre champ (tous à `null`), même sans parent. Un `PATCH` est refusé (403, droit de modification absent). Cause non établie ; hypothèses : le droit « mettre à jour » des entités manque au profil, ou anomalie de GLPI 11.0.11. À vérifier avec le développeur (essayer d'ajouter le droit de mise à jour au profil).
+
+Conséquences :
+
+- Le script lit l'entité qu'il vient de créer et **s'arrête au premier nom perdu** (code de sortie 6), pour ne pas fabriquer des dizaines d'entités vides.
+- L'option `--no-entities` place tous les tickets dans la Root entity ; l'extraction n'a alors pas le nom du client (`client` vide).
+- **Résidu de l'essai** : 12 entités sans nom (identifiants 1 à 12) ont été créées par ces essais (dont deux sondes), et les 5 premiers tickets (`GEN-T-000001` à `GEN-T-000005`) sont rattachés aux entités 1 à 5. Le profil n'a pas le droit de les supprimer ; un Super-Admin doit les nettoyer dans l'interface (Administration > Entités).
+
+### Limites
+
+- Le **demandeur** n'est pas créé : l'API demande l'identifiant d'un utilisateur GLPI, et le profil d'injection n'a pas le droit d'en créer. Le nom et l'adresse du demandeur restent donc dans le texte (signature), et le champ « demandeur » de l'extraction est vide pour ces tickets.
+- Le **canal d'entrée** (courriel, portail…) et l'**équipe** ne sont pas transmis : ils sont vides à l'extraction.
+- Les tickets sont tous au statut « Nouveau » ; le cycle de vie d'un ticket n'est pas simulé.
+- Seule la racine des entités a été testée pour la création de tickets (voir ci-dessus).
 
 ## Contraintes techniques de la source (C1)
 
@@ -179,7 +303,7 @@ Ce qui reste à faire manuellement n'est volontairement pas automatisé ici : la
 |---|---|
 | Versions | GLPI 11.0.x. MariaDB 10.6 ou plus, ou MySQL 8 (exigence de GLPI 11) ; PHP géré par l'image Docker |
 | Ressources | Deux conteneurs, plus légers que l'alternative écartée (Zammad, 4 Go minimum) ; consommation réelle à mesurer au premier démarrage |
-| API | API v2 sous `/api.php/`, OAuth2 obligatoire ; client à enregistrer dans l'interface ; l'ancienne API v1 reste disponible mais n'est pas utilisée |
+| API | API v2 sous `/api.php/`, OAuth2 obligatoire ; client à enregistrer dans l'interface ; l'ancienne API v1 est désactivée |
 | Jeton | Le jeton d'accès **expire au bout d'1 heure** par défaut : le script d'extraction doit le renouveler (ou en redemander un) avant l'expiration |
 | SQL | Schéma de plusieurs centaines de tables (préfixe `glpi_`) ; MariaDB alors que la base du projet est PostgreSQL : l'extraction implique une vraie transformation entre moteurs |
 | Données | Les tickets contiennent du texte libre, donc potentiellement des données personnelles et des secrets : pseudonymisation et masquage **à l'import**, avant tout traitement (RGPD) |
