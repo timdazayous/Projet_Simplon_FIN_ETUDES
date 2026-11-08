@@ -212,13 +212,14 @@ def split_external(
     *,
     tuning_share: float,
     seed: int,
-    min_test: int,
+    min_total_for_tuning: int = 0,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Split the real external tickets into ``(test, tuning)``.
 
     Stratified by category; near-duplicates (same ``group_key``) stay on the same side; a group
-    that contains a reviewed ticket (``reference_ids``) goes entirely to the test. Raises
-    ``ValueError`` if a category present in the test ends up with fewer than ``min_test`` tickets.
+    that contains a reviewed ticket (``reference_ids``) goes entirely to the test. A category with
+    fewer than ``min_total_for_tuning`` tickets in all goes entirely to the test (decision of
+    2026-11-08: too few tickets to share them).
     """
     reference = set(reference_ids)
     unknown = reference - {r["id"] for r in rows}
@@ -236,7 +237,8 @@ def split_external(
             groups[group_key(row)].append(row)
         free = [groups[key] for key in sorted(groups) if key not in forced_keys]
         random.Random(f"{seed}:tuning:{category}").shuffle(free)
-        wanted = round(tuning_share * len(by_category[category]))
+        size = len(by_category[category])
+        wanted = 0 if size < min_total_for_tuning else round(tuning_share * size)
         taken = 0
         for group in free:
             if taken + len(group) <= wanted:
@@ -250,16 +252,13 @@ def split_external(
     if shared:
         test.extend(r for r in tuning if group_key(r) in shared)
         tuning = [r for r in tuning if group_key(r) not in shared]
-    counts = Counter(r["category"] for r in test)
-    too_small = {c: n for c, n in sorted(counts.items()) if n < min_test}
-    if too_small:
-        raise ValueError(
-            f"Test too small: fewer than {min_test} test tickets for {too_small} "
-            f"(tickets per category before the split: "
-            f"{dict(sorted(Counter(r['category'] for r in rows).items()))}). "
-            "Decide: lower the threshold, merge categories or add real tickets."
-        )
     return test, tuning
+
+
+def low_test_categories(test: list[dict[str, Any]], min_test: int) -> dict[str, int]:
+    """Categories present in the test with fewer than ``min_test`` tickets (score indicative)."""
+    counts = Counter(r["category"] for r in test)
+    return {c: n for c, n in sorted(counts.items()) if n < min_test}
 
 
 # --------------------------------------------------------------------------- report
@@ -376,7 +375,7 @@ def assemble(
         reference_ids,
         tuning_share=float(tuning_cfg["share"]),
         seed=seed,
-        min_test=int(tuning_cfg["min_test_per_category"]),
+        min_total_for_tuning=int(tuning_cfg["min_total_for_tuning"]),
     )
 
     # The external test never enters the training: remove look-alikes from the training pool.
@@ -441,6 +440,7 @@ def assemble(
         "test_external": sorted(test_external, key=lambda r: r["id"]),
         "test_generated": test_generated,
     }
+    tuned = {r["category"] for r in tuning}
     leaks = leak_check(subsets)
     if any(v for pair in leaks.values() for v in pair.values()):
         raise ValueError(f"Leak between subsets: {leaks}")
@@ -461,7 +461,15 @@ def assemble(
         "generated_diversity_train": generated_diversity(tickets),
         "external_split": {
             "tuning_share": tuning_cfg["share"],
+            "min_total_for_tuning": tuning_cfg["min_total_for_tuning"],
             "min_test_per_category": tuning_cfg["min_test_per_category"],
+            "categories_without_tuning": sorted(
+                c for c in {r["category"] for r in test_external} if c not in tuned
+            ),
+            "indicative_score_categories": low_test_categories(
+                test_external, int(tuning_cfg["min_test_per_category"])
+            ),
+            "indicative_score_note": "score indicatif (moins de min_test_per_category tickets)",
             "reference_tickets_in_test": len(set(reference_ids)),
             "by_category": {
                 c: {

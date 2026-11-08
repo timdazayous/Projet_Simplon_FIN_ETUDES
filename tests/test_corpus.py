@@ -15,6 +15,7 @@ from src.data.corpus import (
     group_key,
     join_text,
     leak_check,
+    low_test_categories,
     normalise_key,
     public_rows,
     select_public,
@@ -73,7 +74,7 @@ def small_config(tmp_path):
     cfg["corpus"] = {
         "total": 120,
         "validation_share": 0.25,
-        "tuning": {"share": 0.25, "min_test_per_category": 1},
+        "tuning": {"share": 0.25, "min_total_for_tuning": 0, "min_test_per_category": 1},
         "test_generated": {"seed": 777, "per_category": {"backup": 5, "procurement": 5}},
     }
     path = tmp_path / "generator.yaml"
@@ -417,19 +418,19 @@ def external_rows(per_category: dict[str, int], *, shared_opening: int = 0):
 
 def test_external_split_is_stratified_and_reproducible():
     rows = external_rows({"accounts": 60, "software": 30, "printing": 20})
-    test, tuning = split_external(rows, [], tuning_share=0.3, seed=5, min_test=10)
+    test, tuning = split_external(rows, [], tuning_share=0.3, seed=5)
     assert len(test) + len(tuning) == len(rows)
     assert {r["id"] for r in test}.isdisjoint({r["id"] for r in tuning})
     by_category = Counter(r["category"] for r in tuning)
     assert by_category == {"accounts": 18, "software": 9, "printing": 6}
-    assert split_external(rows, [], tuning_share=0.3, seed=5, min_test=10) == (test, tuning)
-    other = split_external(rows, [], tuning_share=0.3, seed=6, min_test=10)
+    assert split_external(rows, [], tuning_share=0.3, seed=5) == (test, tuning)
+    other = split_external(rows, [], tuning_share=0.3, seed=6)
     assert {r["id"] for r in other[1]} != {r["id"] for r in tuning}
 
 
 def test_external_split_keeps_near_duplicates_on_the_same_side():
     rows = external_rows({"accounts": 60, "software": 30}, shared_opening=8)
-    test, tuning = split_external(rows, [], tuning_share=0.3, seed=1, min_test=1)
+    test, tuning = split_external(rows, [], tuning_share=0.3, seed=1)
     family = {r["id"] for r in rows if r["text"].startswith("même début")}
     assert len(family) == 8
     tuning_ids = {r["id"] for r in tuning}
@@ -441,32 +442,47 @@ def test_reviewed_tickets_and_their_near_duplicates_stay_in_the_test():
     rows = external_rows({"accounts": 60, "software": 30}, shared_opening=8)
     reviewed = [r["id"] for r in rows if r["category"] == "software"][:10]
     reviewed.append(next(r["id"] for r in rows if r["text"].startswith("même début")))
-    test, tuning = split_external(rows, reviewed, tuning_share=0.5, seed=2, min_test=1)
+    test, tuning = split_external(rows, reviewed, tuning_share=0.5, seed=2)
     assert set(reviewed) <= {r["id"] for r in test}
     assert all(not r["text"].startswith("même début") for r in tuning)
 
 
-def test_external_split_stops_when_a_category_has_fewer_than_ten_test_tickets():
-    rows = external_rows({"accounts": 60, "security": 12})
-    with pytest.raises(ValueError, match=r"fewer than 10 test tickets.*security"):
-        split_external(rows, [], tuning_share=0.5, seed=1, min_test=10)
-    test, _ = split_external(rows, [], tuning_share=0.5, seed=1, min_test=5)
-    assert Counter(r["category"] for r in test)["security"] == 6
+def test_small_categories_go_entirely_to_the_test():
+    rows = external_rows({"accounts": 60, "security": 12, "workstation": 5})
+    test, tuning = split_external(rows, [], tuning_share=0.5, seed=1, min_total_for_tuning=20)
+    assert {r["category"] for r in tuning} == {"accounts"}
+    assert Counter(r["category"] for r in test) == {
+        "accounts": 30,
+        "security": 12,
+        "workstation": 5,
+    }
+    # Without the rule the same categories would be shared.
+    _, shared = split_external(rows, [], tuning_share=0.5, seed=1)
+    assert {"security", "workstation"} <= {r["category"] for r in shared}
+
+
+def test_categories_under_ten_test_tickets_are_reported_not_blocking():
+    rows = external_rows({"accounts": 60, "security": 12, "workstation": 5})
+    test, _ = split_external(rows, [], tuning_share=0.5, seed=1, min_total_for_tuning=20)
+    assert low_test_categories(test, 10) == {"workstation": 5}
 
 
 def test_external_split_rejects_an_unknown_reviewed_ticket():
     with pytest.raises(ValueError, match="missing"):
-        split_external(
-            external_rows({"accounts": 10}), ["INCONNU"], tuning_share=0.3, seed=1, min_test=1
-        )
+        split_external(external_rows({"accounts": 10}), ["INCONNU"], tuning_share=0.3, seed=1)
 
 
-def test_assembly_stops_below_the_minimum_of_test_tickets(small_config, taxonomy):
+def test_assembly_warns_without_stopping_below_the_minimum(small_config, taxonomy):
     cfg = yaml.safe_load(small_config.read_text(encoding="utf-8"))
-    cfg["corpus"]["tuning"]["min_test_per_category"] = 10
+    cfg["corpus"]["tuning"]["min_test_per_category"] = 100
+    cfg["corpus"]["tuning"]["min_total_for_tuning"] = 20
     small_config.write_text(yaml.safe_dump(cfg, allow_unicode=True), encoding="utf-8")
-    with pytest.raises(ValueError, match="fewer than 10 test tickets"):
-        run_assemble(small_config, taxonomy)
+    subsets, report = run_assemble(small_config, taxonomy)
+    split = report["external_split"]
+    assert split["categories_without_tuning"] == ["network"]
+    assert split["indicative_score_categories"]["network"] == 1
+    assert "indicatif" in split["indicative_score_note"]
+    assert "network" not in {r["category"] for r in subsets["tuning"]}
 
 
 def test_tuning_set_is_distinct_from_every_other_set(small_config, taxonomy):

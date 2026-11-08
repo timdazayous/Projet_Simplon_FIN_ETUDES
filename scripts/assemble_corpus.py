@@ -72,6 +72,9 @@ def main() -> int:
     except ValueError as error:
         print(f"Arrêt : {error}")
         return 1
+    split = report["external_split"]
+    for category, count in split["indicative_score_categories"].items():
+        print(f"Avertissement : {category} n'a que {count} tickets de test, score indicatif.")
     for name in SUBSETS:
         count = write_jsonl(out_dir / f"{name}.jsonl", subsets[name])
         print(f"{name}: {count} lignes")

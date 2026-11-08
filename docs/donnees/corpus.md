@@ -210,7 +210,7 @@ Les corrections ne modifient pas automatiquement `test_external.jsonl`, dont les
 
 ## Convention de balises et jeu de réglage (Issue #54, 7 novembre 2026)
 
-**État : le découpage du test est bloqué par le seuil de 10 tickets** (voir « Seuil de 10 tickets de test »). Les volumes ci-dessous sont ceux d'un essai avec le seuil ramené à 0, hors dépôt.
+Décision du développeur du 8 novembre 2026 sur les catégories rares : voir « Règle des petites catégories ». Les volumes ci-dessous sont ceux des données réelles.
 
 ### Convention de balises
 
@@ -235,30 +235,38 @@ Choix :
 
 ### Découpage du test externe
 
-Les 457 tickets tasksource sont découpés en un **test** (environ 300) et un **jeu de réglage** (environ 150), avec `split_external` (`src/data/corpus.py`) :
+Les 457 tickets tasksource sont découpés en un **test** (319) et un **jeu de réglage** (138), avec `split_external` (`src/data/corpus.py`) :
 
 - stratifié par catégorie, graine 42 (part de réglage 0,33 dans `config/generator.yaml`) ;
 - les quasi-doublons (même `group_key`) restent du même côté ;
 - les **50 tickets relus**, et tout ticket de même `group_key`, restent dans le test (leur identifiant est lu dans la colonne « Identifiant » du fichier de relecture, option `--reference`) ;
 - le jeu de réglage sert à **choisir** (corpus, modèle, réglages). Le test ne sert plus à choisir quoi que ce soit.
 
-Volumes d'un essai avec seuil à 0 (le test fait 307 tickets, le réglage 150) :
+### Règle des petites catégories (décision du développeur, 8 novembre 2026)
 
-| Catégorie | Test | Réglage |
-|---|---|---|
-| `accounts` | 156 | 77 |
-| `messaging` | 49 | 24 |
-| `software` | 36 | 17 |
-| `printing` | 21 | 11 |
-| `telephony` | 17 | 9 |
-| `infrastructure` | 9 | 4 |
-| `network` | 9 | 4 |
-| `security` | 6 | 3 |
-| `workstation` | 4 | 1 |
+- **Moins de 20 vrais tickets au total : tout au test, rien au réglage.** Le seuil est le paramètre `min_total_for_tuning` de `config/generator.yaml` (pas une valeur en dur). Il touche `infrastructure` (13), `network` (13), `security` (9) et `workstation` (5).
+- **Moins de 10 tickets de test : avertissement, pas d'arrêt.** Le paramètre `min_test_per_category` ne bloque plus le script (code de sortie 0). Le script affiche un avertissement, et `report.json` (section `external_split`, clés `indicative_score_categories` et `indicative_score_note`) liste ces catégories avec la mention « score indicatif ». Sur les données réelles : `security` (9) et `workstation` (5).
+- Première version de l'Issue : le script s'arrêtait sous 10 tickets de test. Ce seuil était inatteignable pour `security` et `workstation` (9 et 5 tickets en tout), d'où la décision.
 
-### Seuil de 10 tickets de test
+Volumes réels (le test fait 319 tickets, le réglage 138) :
 
-Le script **s'arrête avec un message clair** si une catégorie présente au test a moins de 10 tickets (`min_test_per_category` dans `config/generator.yaml`). Sur les données réelles, **quatre catégories passent sous le seuil** : `infrastructure` (9), `network` (9), `security` (6), `workstation` (4). Pour `security` (9 tickets en tout) et `workstation` (5 en tout), le seuil est hors d'atteinte même si tous les tickets allaient au test. Le script n'a donc pas été relâché : la décision (baisser le seuil, regrouper des catégories, ajouter de vrais tickets, ne pas évaluer ces catégories sur le test externe) revient au développeur.
+| Catégorie | Test | Réglage | Lecture du score au test |
+|---|---|---|---|
+| `accounts` | 156 | 77 | normale |
+| `messaging` | 49 | 24 | normale |
+| `software` | 36 | 17 | normale |
+| `printing` | 21 | 11 | normale |
+| `telephony` | 17 | 9 | normale |
+| `infrastructure` | 13 | 0 | normale, pas de réglage |
+| `network` | 13 | 0 | normale, pas de réglage |
+| `security` | 9 | 0 | **score indicatif** |
+| `workstation` | 5 | 0 | **score indicatif** |
+
+Réserves :
+
+- Les scores de `security`, de `workstation` et de toute catégorie sous 10 tickets de test sont **indicatifs** : un seul ticket change le score de plusieurs points.
+- Ces catégories pourront aussi être présentées sur le **test généré**, avec la réserve habituelle (test optimiste, voir « Limites »).
+- `infrastructure`, `network`, `security` et `workstation` n'ont **aucun ticket au réglage** : le réglage ne permet pas de choisir pour ces catégories.
 
 ### Absence de fuite
 
@@ -266,14 +274,16 @@ Le contrôle des fuites couvre maintenant **dix paires** (cinq jeux : entraînem
 
 ### Mesure avant et après la convention (jeu de réglage uniquement)
 
-Contrôle simple (TF-IDF avec mots et paires de mots, régression logistique, script jetable hors dépôt) entraîné sur le jeu d'entraînement, mesuré sur les **150 mêmes tickets de réglage**. Le test externe n'est pas utilisé.
+Contrôle simple (TF-IDF avec mots et paires de mots, régression logistique, script jetable hors dépôt) entraîné sur le jeu d'entraînement, mesuré sur les **138 mêmes tickets de réglage**. Le test externe n'est pas utilisé. **Le macro-F1 ne porte que sur les 5 catégories présentes au réglage** (`accounts`, `messaging`, `software`, `printing`, `telephony`) : il n'est donc pas comparable aux 0,30 mesurés plus haut sur le test externe, qui portait sur toutes les catégories.
 
 | Corpus d'entraînement | Macro-F1 sur le réglage | Exactitude sur le réglage |
 |---|---|---|
-| Avant la convention | 0,32 | 0,36 |
-| Après la convention | 0,34 | 0,49 |
+| Avant la convention | 0,43 | 0,36 |
+| Après la convention | 0,45 | 0,51 |
 
-À lire avec prudence : le jeu de réglage compte un seul ticket `workstation` et 3 `security`, donc le macro-F1 est instable ; l'entraînement « après » diffère de 2 lignes du « avant » (les clés de quasi-doublons des textes générés ont changé). L'exactitude gagne 13 points, le macro-F1 seulement 2 : la convention aide, elle ne règle pas l'écart. Les textes réels restent courts et différents du corpus : suite dans #50.
+Avec la validation ajoutée à l'entraînement : 0,40 et 0,36 avant, 0,45 et 0,48 après.
+
+À lire avec prudence : 138 tickets seulement, dont 77 `accounts`. L'exactitude gagne 15 points, le macro-F1 seulement 1 à 5 : la convention aide, elle ne règle pas l'écart avec les vrais tickets (suite dans #50). L'entraînement « après » diffère de 2 lignes du « avant » (les clés de quasi-doublons des textes générés ont changé).
 
 ## Reproduire
 
