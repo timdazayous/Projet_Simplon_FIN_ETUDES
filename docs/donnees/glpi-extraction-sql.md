@@ -151,9 +151,9 @@ Aucune donnée brute n'est écrite sur disque : la conversion pseudonymise et ma
 |---|---|---|
 | Identifiant d'une personne (demandeur) | **HMAC-SHA256 à clé** (`PSEUDONYMIZATION_KEY`), tronqué à 16 caractères hexadécimaux : `person-3f9a…` | Un même demandeur garde le même pseudonyme (jointures et comptages possibles), mais on ne retrouve pas la personne sans la clé. Un simple SHA-256 serait attaquable en essayant toutes les adresses connues ; la clé secrète l'empêche. |
 | Adresses de courriel dans le texte | Remplacées par `[EMAIL]` | Donnée personnelle |
-| Numéros de téléphone (formats français et internationaux) | `[TELEPHONE]` | Donnée personnelle |
-| Noms du demandeur connus de GLPI (prénom, nom, et chacune de leurs parties de 3 lettres ou plus) | `[PERSONNE]`, sans tenir compte de la casse | Donnée personnelle |
-| Secrets : après « mot de passe », « mdp », « password », « code d'accès », « clé », « token »…, clés d'API courantes (`sk-…`, `AKIA…`, jetons GitHub et Slack, JWT), longues chaînes hexadécimales, clés privées | `[SECRET]` ou `[CLE_PRIVEE]` | Ne jamais stocker un secret collé dans un ticket |
+| Numéros de téléphone (formats français et internationaux) | `[PHONE]` | Donnée personnelle |
+| Noms du demandeur connus de GLPI (prénom, nom, et chacune de leurs parties de 3 lettres ou plus) | `[NAME]`, sans tenir compte de la casse | Donnée personnelle |
+| Secrets : après « mot de passe », « mdp », « password », « code d'accès », « clé », « token »…, clés d'API courantes (`sk-…`, `AKIA…`, jetons GitHub et Slack, JWT), longues chaînes hexadécimales, clés privées | `[PASSWORD]` | Ne jamais stocker un secret collé dans un ticket |
 
 **Placeholder fixe, pas un hachage, pour les secrets, courriels et téléphones** : remplacer un secret par son hachage permettrait de le deviner par essais. Le pseudonyme à clé est réservé aux identifiants dont on a besoin de rapprocher les occurrences.
 
@@ -189,3 +189,7 @@ Un test d'intégration contre l'instance réelle n'est pas inclus : il demande l
 ## État de l'essai réel
 
 L'essai sur l'instance GLPI locale (300 tickets injectés) demande le compte en lecture seule et la clé de pseudonymisation, créés par le développeur (procédure de la page GLPI). Il n'avait pas été fait à la rédaction de cette page : la requête, le compte et la pseudonymisation ont été validés sur une base MariaDB 10.11.19 jetable portant le schéma officiel de GLPI 11 avec quelques tickets fictifs (tickets supprimés exclus, comptage des suivis, catégorie inconnue, courriel, téléphone et secret masqués, droits du compte). Le rapport d'exécution de l'essai réel est à ajouter ici.
+
+## Balises de masquage
+
+Les marqueurs écrits dans le texte suivent la convention unique du corpus (`src/data/tags.py`, voir [corpus](corpus.md)) : `[EMAIL]`, `[PHONE]`, `[NAME]` et `[PASSWORD]` (secrets et clés privées). Une balise différente de celle du corpus permettrait au modèle d'apprendre la source d'un texte plutôt que sa catégorie. Un test vérifie que toute balise produite appartient à `CONVENTION_TAGS`.

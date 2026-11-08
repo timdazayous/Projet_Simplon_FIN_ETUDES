@@ -119,7 +119,7 @@ def test_known_names_are_masked_whatever_the_case_and_the_part(pseudo: Pseudonym
 
 def test_a_name_inside_another_word_is_left_alone(pseudo: Pseudonymizer) -> None:
     result = pseudo.mask_text("Le télétravail de Léa et la cléa", ["Léa"])
-    assert "cléa" in result.text and "[PERSONNE]" in result.text
+    assert "cléa" in result.text and "[NAME]" in result.text
 
 
 def test_ordinary_text_is_left_untouched(pseudo: Pseudonymizer) -> None:
@@ -165,3 +165,19 @@ def test_fictive_secrets_are_all_masked(pseudo: Pseudonymizer) -> None:
     for _ in range(50):
         secret = fictive_secret(rng)
         assert secret not in pseudo.mask_text(f"voici {secret} merci").text
+
+
+def test_every_placeholder_belongs_to_the_corpus_convention(pseudo: Pseudonymizer) -> None:
+    """One convention for the whole corpus (src/data/tags.py), or the model learns the source."""
+    import re
+
+    from src.data.tags import CONVENTION_TAGS
+
+    text = (
+        "Mail a@b.fr, tél 01 99 00 12 34, mot de passe: xyz, Léa Roux, token=abc, "
+        "-----BEGIN RSA PRIVATE KEY-----\nMIIEow\n-----END RSA PRIVATE KEY-----"
+    )
+    masked = pseudo.mask_text(text, ["Léa Roux"]).text
+    found = set(re.findall(r"\[[A-Z_ ]+\]", masked))
+    assert found == {"[EMAIL]", "[PHONE]", "[PASSWORD]", "[NAME]"}
+    assert found <= CONVENTION_TAGS
