@@ -209,3 +209,20 @@
 **Contexte** : première partie de #50 (#54, PR #56). Chaque source avait son propre format de données masquées (`[NAME]` dans tasksource, `<name>` ou `[Votre nom]` dans le public, noms fictifs en clair dans le généré), et le modèle se réglait sur une validation trompeuse.
 **Choix / Cause** : une convention unique, entre crochets et en majuscules, reprenant l'orthographe de tasksource, la seule source réelle et donc gardée telle quelle (`src/data/tags.py`, 16 balises). Les données fictives du générateur sont elles aussi remplacées par des balises. Les prénoms ne sont remplacés que dans le généré, pour ne pas toucher un mot courant d'un texte réel. Les 457 vrais tickets sont découpés en 319 pour le test, dont les 50 relus, et 138 pour le réglage. L'agent s'est arrêté sur le seuil de 10 tickets de test, inatteignable pour `security` (9 tickets) et `workstation` (5). Décision du développeur : une catégorie de moins de 20 vrais tickets va entièrement au test, et le seuil de 10 devient un avertissement « score indicatif ».
 **Raison / Résolution** : sur le réglage, le contrôle simple passe de 0,36 à 0,51 d'exactitude, mais le macro-F1 ne gagne que 0,02 (0,43 → 0,45, sur 5 catégories, non comparable au 0,30 du test). La convention aide peu : l'écart vient d'ailleurs (longueur et style), suite dans #50. Alternatives écartées : remplacer seulement les adresses électroniques (le modèle aurait reconnu le généré à ses noms) ; baisser le seuil à 4 (masque le problème) ; fusionner des catégories (casse la taxonomie pour une question de volume). Vérifié par Opus : deux assemblages identiques octet pour octet, aucune fuite sur 10 paires de jeux.
+
+## 2026-11-08 — Injection dans GLPI et extraction SQL pseudonymisée
+**Type** : décision
+**Contexte** : #52 et #53 (PR #57). La 4ᵉ source, « base de données », est la MariaDB de GLPI, alimentée par 300 tickets générés injectés par l'API v2 (OAuth2, compte de service `svc-injection` au profil minimal).
+**Choix / Cause** :
+- La lecture se fait par un compte MariaDB `glpi_reader` limité à `SELECT` sur cinq tables et trois colonnes de `glpi_users` (deux connexions maximum), dans une session en lecture seule et en UTC.
+- Les requêtes sont écrites à la main, paramétrées et versionnées dans `sql/glpi/`. L'extraction est incrémentale, sur `date_mod >= since` : la borne incluse évite de perdre un ticket modifié dans la même seconde, et le dédoublonnage par identifiant protège la sortie.
+- Les données sont pseudonymisées à l'import : HMAC-SHA256 à clé, et masquage des courriels, des téléphones et des secrets avec les balises de la convention.
+- Le connecteur est PyMySQL. Connecteur MariaDB officiel écarté : il demande une bibliothèque C, pénible sous Windows et en CI. SQLAlchemy écarté : un ORM n'apporte rien à du SQL écrit à la main.
+
+**Raison / Résolution** : l'essai réel du 8 novembre a été fait par Opus avec le développeur. Les secrets ont été générés directement dans `.env`, sans affichage.
+- Moindre privilège vérifié : écriture, colonne `password` et table `glpi_configs` refusées.
+- Les 300 tickets sur 300 ont été extraits en 0,2 s, avec 73 courriels, 70 téléphones et 10 secrets masqués. Il ne reste aucune donnée en clair.
+- Le plan `EXPLAIN` réel montre que l'optimiseur lit toute la table quand le filtre retient 74 à 100 % des lignes, et qu'il passe par l'index `date_mod` à 10 % (estimation exacte de 31 lignes).
+- Deux problèmes sont ouverts en Issues :
+  - #58 : entités créées sans nom par l'API, avec une réponse 201 silencieuse. C'est le candidat pour l'incident E5.
+  - #59 : les noms absents de GLPI (signatures, personnes citées) restent en clair. C'est à corriger avant tout vrai ticket et tout envoi à Groq.

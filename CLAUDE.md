@@ -137,9 +137,9 @@ Le backlog fait foi : **GitHub Project « Triage IA MSP — Pilotage »** (https
 État au 2026-10-21 :
 - **Sprint 1** (6 → 19 octobre) : terminé, 15 points sur 18. Compte rendu : `docs/sprints/sprint-01.md`.
 - **Sprint 2** (20 octobre → 2 novembre) : **toutes les Issues terminées** (#22 GLPI en Docker, #5 cadrage, #6 taxonomie et conception du tri, #27 inventaire des jeux publics, #8 première synthèse de veille). Revue et rétrospective à faire le 2 novembre dans `docs/sprints/sprint-02.md`.
-- **Sprint 3** (3 → 16 novembre) : planifié le 2026-11-07. #52 injection GLPI par l'API v2 et #53 extraction SQL + pseudonymisation (une PR), #54 terminée le 2026-11-08 (PR #56), #35 Zensical. Agent de #52/#53 lancé le 2026-11-08 (API GLPI prête : profil `API injection`, client OAuth scope `api`, API legacy désactivée). Veille : #55 résumé automatique au sprint 4, #15 plus tard. Synthèses de veille manquantes les semaines du 25 octobre et du 1er novembre.
+- **Sprint 3** (3 → 16 novembre) : planifié le 2026-11-07. #52 injection GLPI (API v2) et #53 extraction SQL pseudonymisée terminées le 2026-11-08 (PR #57 : compte `glpi_reader`, 300 tickets extraits dans `data/raw/glpi/`, clé de pseudonymisation dans `.env` et le gestionnaire de mots de passe du développeur), #54 terminée le 2026-11-08 (PR #56), reste #35 Zensical. Issues ouvertes après l'essai réel : #58 entités GLPI sans nom (candidat incident E5, à déboguer avec le développeur, ne pas nettoyer les entités avant la reproduction), #59 masquage des noms absents de GLPI (avant tout vrai ticket et tout envoi à Groq). Veille : #55 résumé automatique au sprint 4, #15 plus tard. Synthèses de veille manquantes les semaines du 25 octobre et du 1er novembre.
 - **Backlog** : #15 tri automatique de la veille (optionnel), #24 réévaluer GLPI 12, #30 benchmark des modèles de décision (phase 3), #31 exigences AI Act.
-- **Ensuite** : extraction depuis GLPI (API et SQL), base de données Merise / RGPD, API de données.
+- **Ensuite** : big data (Parquet + Spark), base de données Merise / RGPD, API de données.
 
 - GLPI démarré le 2026-11-07 : compte Super-Admin personnel, les 4 comptes par défaut désactivés, `glpi-system` conservé. Reste à passer l'interface en français. Captures locales dans `media/` (ignoré par Git).
 En attente du développeur :
