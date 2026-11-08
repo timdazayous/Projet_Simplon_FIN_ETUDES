@@ -119,7 +119,32 @@ Lecture :
 2. `c` et `e` : `eq_ref` sur la clé primaire, la meilleure jointure possible.
 3. `f` : sous-requête dépendante qui utilise l'index `item (itemtype, items_id)` et ne lit que l'index (`Using index`).
 
-**À compléter par l'essai réel** : ce plan vient d'une table presque vide, où l'optimiseur peut choisir autrement qu'avec 300 ou 100 000 tickets. Le plan de l'instance GLPI réelle (avec le compte en lecture seule) est à relever avec la commande `--explain` et à coller ici comme preuve C2. Si l'optimiseur choisissait l'index `is_deleted` (peu sélectif) au lieu de `date_mod`, il faudrait forcer l'index ou supprimer le filtre côté SQL.
+**Plans relevés le 8 novembre 2026 sur l'instance GLPI réelle** (300 tickets injectés, compte en lecture seule `glpi_reader`) :
+
+*Extraction complète* (`--explain --full` : `since` en 1970, les 300 tickets sont retenus) :
+
+```text
+id=1 | PRIMARY            | t | type=ALL    | possible_keys=date_mod,is_deleted | key=None    | rows=300 | Using where; Using filesort
+id=1 | PRIMARY            | c | type=eq_ref | possible_keys=PRIMARY             | key=PRIMARY | ref=glpi.t.itilcategories_id
+id=1 | PRIMARY            | e | type=eq_ref | possible_keys=PRIMARY             | key=PRIMARY | ref=glpi.t.entities_id
+id=2 | DEPENDENT SUBQUERY | f | type=ref    | possible_keys=item                | key=item    | ref=const,glpi.t.id | Using where; Using index
+```
+
+*Extraction incrémentale* (`--explain --since 2026-11-08T18:05:31`, soit 31 tickets sur 300) :
+
+```text
+id=1 | PRIMARY            | t | type=range  | possible_keys=date_mod,is_deleted | key=date_mod | rows=31 | Using index condition; Using where
+id=1 | PRIMARY            | c | type=eq_ref | possible_keys=PRIMARY             | key=PRIMARY  | ref=glpi.t.itilcategories_id
+id=1 | PRIMARY            | e | type=eq_ref | possible_keys=PRIMARY             | key=PRIMARY  | ref=glpi.t.entities_id
+id=2 | DEPENDENT SUBQUERY | f | type=ref    | possible_keys=item                | key=item     | ref=const,glpi.t.id | Using where; Using index
+```
+
+Lecture des plans réels :
+
+- **L'optimiseur choisit selon la part de lignes retenues.** Quand le filtre retient tout (extraction complète), ou presque tout (essai intermédiaire : 223 tickets sur 300, soit 74 %, également en `ALL`), lire la table en entier coûte moins que de passer par l'index puis de revenir chercher chaque ligne. Quand le filtre est sélectif (31 sur 300, environ 10 %), il passe par l'index `date_mod` (`range`). L'estimation de 31 lignes est exacte. L'extraction incrémentale quotidienne, qui ne relit qu'une petite part de l'historique, profite donc bien de l'index.
+- **`Using filesort`** dans le plan complet : le tri `ORDER BY date_mod, id` se fait après la lecture, puisque l'index n'est pas utilisé. Sur 300 lignes, c'est sans effet. En incrémental, il disparaît : les lignes sortent déjà triées de l'index.
+- Les jointures (`eq_ref`) et le comptage des suivis (`Using index`) sont identiques aux plans de la base de test.
+- Aucun index n'a eu besoin d'être forcé : l'index `is_deleted`, peu sélectif, n'est jamais choisi.
 
 ## Conversion vers le schéma commun
 
@@ -188,7 +213,38 @@ Un test d'intégration contre l'instance réelle n'est pas inclus : il demande l
 
 ## État de l'essai réel
 
-L'essai sur l'instance GLPI locale (300 tickets injectés) demande le compte en lecture seule et la clé de pseudonymisation, créés par le développeur (procédure de la page GLPI). Il n'avait pas été fait à la rédaction de cette page : la requête, le compte et la pseudonymisation ont été validés sur une base MariaDB 10.11.19 jetable portant le schéma officiel de GLPI 11 avec quelques tickets fictifs (tickets supprimés exclus, comptage des suivis, catégorie inconnue, courriel, téléphone et secret masqués, droits du compte). Le rapport d'exécution de l'essai réel est à ajouter ici.
+**Essai du 8 novembre 2026** sur l'instance GLPI locale (GLPI 11.0.11, MariaDB 10.11.19), avec 300 tickets injectés par `scripts/inject_glpi.py`. Le compte en lecture seule et la clé de pseudonymisation ont été créés par la procédure de la page GLPI.
+
+**Compte en lecture seule** : vérifié par trois tentatives, toutes refusées par MariaDB :
+
+| Tentative | Résultat |
+|---|---|
+| `UPDATE glpi_tickets …` | refusé (erreur 1142, commande interdite) |
+| `SELECT password FROM glpi_users` | refusé (erreur 1143, colonne interdite) |
+| `SELECT … FROM glpi_configs` | refusé (erreur 1142, table hors périmètre) |
+
+**Extraction complète** (`--full`), à partir de `data/raw/glpi/extraction_report.json` :
+
+| Mesure | Valeur |
+|---|---|
+| Tickets lus / écrits | 300 / 300 (toutes les données visées) |
+| Sans texte, catégorie inconnue, sans catégorie | 0, 0, 0 |
+| Catégories retrouvées | 12 sur 12 |
+| Masquages | 73 courriels, 70 téléphones, 10 secrets, 0 clé privée |
+| Reprises après erreur | 0 |
+| Durée | 0,2 s |
+| RAM libre du poste | 4,7 Go avant, 4,8 Go après (pas d'effet mesurable) |
+
+**Contrôles de la sortie** (`data/raw/glpi/tickets.jsonl`, hors dépôt) :
+
+- 0 adresse électronique et 0 numéro de téléphone en clair, par recherche d'expressions régulières ;
+- identifiants `GLPI-1` à `GLPI-300`, avec l'identifiant d'origine `GEN-T-…` dans `external_ref` ;
+- `label_origin = glpi_input` pour les 300 tickets ;
+- dates converties en UTC : GLPI stocke `date_mod` vers 19 h 05 heure de Paris, et la sortie indique `18:05:32+00:00`.
+
+**Relance incrémentale** (sans option) : 13 tickets relus, ceux de la dernière seconde (borne `>=`), pour un total qui reste à 300. Il n'y a pas de doublon.
+
+**Limite constatée** : `requesters_read = 0`. Les tickets injectés n'ont pas de demandeur rattaché (voir la page GLPI). Le masquage des noms n'a donc aucun nom connu à masquer, et les noms fictifs des signatures (par exemple « Sophie Lanterval ») restent en clair : aucun ticket ne contient `[NAME]`. Ces données sont générées, mais cette limite doit être levée avant tout traitement de vrais tickets (voir « Limites connues »).
 
 ## Balises de masquage
 

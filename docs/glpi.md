@@ -195,7 +195,7 @@ Droits accordés :
 
 Le compte est limité à 2 connexions simultanées. Son hôte est `%` parce que, vu depuis le conteneur, le client arrive avec l'adresse de la passerelle Docker et non `127.0.0.1` ; le port 3307 n'est de toute façon publié que sur `127.0.0.1`. **Alternative écartée** : `SELECT` sur toute la base `glpi`, plus simple mais qui donnerait accès aux hachages de mots de passe de GLPI.
 
-Ces droits ont été vérifiés le 8 novembre 2026 sur une base MariaDB 10.11.19 jetable, chargée avec le schéma officiel de GLPI 11 : lecture de `glpi_tickets` acceptée, lecture de `glpi_users.password` refusée (erreur 1143), lecture de `glpi_configs` refusée (1142), `UPDATE` et `DELETE` refusés (1142).
+Ces droits ont été vérifiés le 8 novembre 2026 sur une base MariaDB 10.11.19 jetable, chargée avec le schéma officiel de GLPI 11 : lecture de `glpi_tickets` acceptée, lecture de `glpi_users.password` refusée (erreur 1143), lecture de `glpi_configs` refusée (1142), `UPDATE` et `DELETE` refusés (1142). Ils ont ensuite été revérifiés le même jour sur l'instance réelle, avec le compte `glpi_reader` : `UPDATE` refusé (1142), `glpi_users.password` refusé (1143), `glpi_configs` refusé (1142). Voir l'[essai réel](donnees/glpi-extraction-sql.md#etat-de-lessai-reel).
 
 Dépannage : si l'étape 2 échoue sans détail (le script n'affiche pas les messages d'erreur, qui pourraient citer une partie de la commande), exécuter à la main `docker exec -i glpi-db sh -c 'MYSQL_PWD="$MARIADB_ROOT_PASSWORD" mariadb -uroot glpi -e "SELECT VERSION()"'` pour vérifier que le conteneur répond.
 
