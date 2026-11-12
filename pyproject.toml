@@ -21,8 +21,7 @@ dev = [
     "ruff>=0.16.10",
 ]
 docs = [
-    "mkdocs>=1.6,<2",
-    "mkdocs-material>=9.7,<10",
+    "zensical==0.1.1",
 ]
 # Récupération des jeux publics (Issue #29) : absent de la CI et de l'installation de base.
 data = [
