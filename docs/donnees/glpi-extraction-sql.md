@@ -244,6 +244,8 @@ Un test d'intégration contre l'instance réelle n'est pas inclus : il demande l
 
 **Relance incrémentale** (sans option) : 13 tickets relus, ceux de la dernière seconde (borne `>=`), pour un total qui reste à 300. Il n'y a pas de doublon.
 
+**Nouvel essai du 16 novembre 2026, après la correction de l'incident #58** (voir la page GLPI) : GLPI vidé, puis 300 tickets réinjectés avec la même graine (42). Les 60 entités clientes ont été créées avec leur nom, et les 300 tickets y sont répartis (aucun sur la Root entity). Une seconde injection n'a rien créé (300 tickets et 60 entités déjà présents). L'extraction complète donne les mêmes compteurs que ci-dessus, et le champ `client` est désormais rempli pour les 300 tickets (60 valeurs distinctes, aucune vide). Les noms des clients sont fictifs et désignent des entreprises, pas des personnes : ils ne sont pas pseudonymisés.
+
 **Limite constatée** : `requesters_read = 0`. Les tickets injectés n'ont pas de demandeur rattaché (voir la page GLPI). Le masquage des noms n'a donc aucun nom connu à masquer, et les noms fictifs des signatures (par exemple « Sophie Lanterval ») restent en clair : aucun ticket ne contient `[NAME]`. Ces données sont générées, mais cette limite doit être levée avant tout traitement de vrais tickets (voir « Limites connues »).
 
 ## Balises de masquage
