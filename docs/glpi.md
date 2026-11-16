@@ -295,7 +295,7 @@ Choix techniques :
 **Garde-fous conservés** :
 - le script d'injection relit chaque entité créée et **s'arrête au premier nom perdu**, avec le code de sortie 6 et un message qui indique la cause ;
 - l'option `--no-entities` place tous les tickets dans la Root entity ;
-- pour nettoyer, se déconnecter puis se reconnecter en Super-Admin, ce qui rafraîchit le cache. Purger ensuite les tickets **avant** les entités : GLPI accepte de supprimer une entité qui contient encore des tickets, et ces tickets resteraient alors rattachés à une entité disparue.
+- pour nettoyer, le compte Super-Admin doit avoir son habilitation sur Root entity **en récursif** (voir « Premier accès »), sinon les sous-entités et leurs tickets restent invisibles et leur suppression échoue (« Erreur d'habilitation »). Contrôle : `SELECT is_recursive FROM glpi_profiles_users` pour ce compte doit valoir 1. Purger ensuite les tickets **avant** les entités : GLPI accepte de supprimer une entité qui contient encore des tickets, et ces tickets resteraient alors rattachés à une entité disparue.
 
 ### Limites
 
