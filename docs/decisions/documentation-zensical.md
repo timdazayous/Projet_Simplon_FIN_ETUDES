@@ -1,6 +1,6 @@
 # Générateur de documentation : Material for MkDocs ou Zensical
 
-**Statut : décision prise par le développeur le 2026-10-21 : migrer vers Zensical après le 5 novembre 2026 (option B), avec retour à Material for MkDocs épinglé si le contrôle d'accessibilité n'est pas concluant.** Essai réalisé le 2026-10-21. Suivi : Issue #13 (essai et décision).
+**Statut : réalisé (Issue #35, 2026-11-12) : migration vers Zensical 0.1.1, variante `classic`. Décision prise par le développeur le 2026-10-21 (option B), avec retour à Material for MkDocs épinglé si le contrôle d'accessibilité n'est pas concluant ; le contrôle manuel dans un navigateur reste à faire avant fusion.** Essai réalisé le 2026-10-21. Suivi : Issue #13 (essai et décision).
 
 ## Contexte
 
@@ -92,3 +92,11 @@ Je recommande l'**option B en deux temps**, avec la variante `classic` pour limi
 - [Zensical sur PyPI](https://pypi.org/project/zensical/)
 - [Versions de Zensical sur GitHub](https://github.com/zensical/zensical/releases)
 - [Synthèse de veille du 21 octobre 2026](../veille/2026-10-21.md)
+
+## Réalisation (Issue #35, 2026-11-12)
+
+- **Version retenue** : Zensical **0.1.1** (publiée le 10 novembre 2026), licence MIT, classée « Development Status :: 4 - Beta » sur PyPI. La version 0.1.0 du 5 novembre fait passer le projet en bêta pour trois mois avant une version stable, et ferme la plupart des écarts de compatibilité avec MkDocs. Épinglée avec `zensical==0.1.1` (dépend de `zensical-ui` 0.0.42).
+- **Configuration** : `mkdocs.yml` lu tel quel ; seul ajout `theme: variant: classic`. Aucune option ou extension non prise en charge n'a été rencontrée (le fichier ne déclare que `search` en français), `font: false` est conservé.
+- **Résultats** : build strict sans problème ; 28 fichiers HTML, les mêmes chemins que la build Material ; aucune ressource chargée depuis Google Fonts (le `grep` sur les deux domaines de polices Google ne renvoie rien).
+- **Écart connu** : le message d'erreur de copie de code (« Could not copy to clipboard ») reste en anglais.
+- **Sources** : [PyPI](https://pypi.org/project/zensical/), [notes de version 0.1.1](https://github.com/zensical/zensical/releases/tag/v0.1.1) et [0.1.0](https://github.com/zensical/zensical/releases/tag/v0.1.0).

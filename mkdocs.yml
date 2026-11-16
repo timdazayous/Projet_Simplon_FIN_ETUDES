@@ -6,6 +6,7 @@ repo_name: timdazayous/Projet_Simplon_FIN_ETUDES
 
 theme:
   name: material
+  variant: classic
   language: fr
   # RGPD : pas de chargement depuis Google Fonts (l'adresse IP du visiteur serait transmise
   # à un tiers) ; le site utilise les polices système du visiteur.
