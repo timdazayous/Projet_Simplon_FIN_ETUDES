@@ -209,7 +209,7 @@ Réalisé le 8 novembre 2026 (Issue #52). L'API v2 de GLPI est servie sous `/api
 |---|---|---|
 | API REST historique (v1) | **Désactivée** | Surface d'attaque réduite : un seul point d'entrée à surveiller, |
 | API v2 | Activée | Seule utilisée |
-| Profil `API injection` | Clone du profil Technicien, plus : Tickets (créer, lire, modifier), Catégories ITIL (créer, lire), Entités (créer, lire) | Moindre privilège : pas de suppression, pas d'administration |
+| Profil `API injection` | Clone du profil Technicien, plus : Tickets (créer, lire, modifier), Catégories ITIL (créer, lire), Entités (**créer, lire, modifier**) | Moindre privilège : pas de suppression, pas d'administration. Le droit **Modifier** sur les entités est indispensable, même pour créer : sans lui, GLPI crée l'entité sans nom (voir « Incident #58 »). C'est un écart assumé : le compte peut modifier les entités, mais l'instance est locale et les données sont fictives. |
 | Utilisateur d'API | Compte dédié `svc-injection`, profil `API injection` sur la Root entity en récursif | Distinct du Super-Admin : si le secret fuit, les dégâts restent limités à la création de tickets |
 | Client OAuth | Type d'autorisation **Password**, portée `api` seule, sans restriction d'adresse IP | Les scripts se connectent avec un utilisateur et un mot de passe. Docker présente l'hôte sous une autre adresse que `127.0.0.1`, d'où l'absence de restriction (le port n'est publié que sur `127.0.0.1`). |
 
@@ -238,7 +238,7 @@ L'ancienne remarque « l'ancienne API v1 reste disponible mais n'est pas utilis�
 | Type `incident` | `type` | 1 (incident) |
 | Types `service_request` et `information` | `type` | 2 (demande). **GLPI n'a que deux types** : la différence entre demande de service et demande d'information est perdue à l'injection, et l'extraction rend toujours `service_request`. |
 | Catégorie (12) | Catégorie ITIL, champ `code` = clé de `config/taxonomy.yaml` | Reconnue par son `code` : renommer le libellé dans GLPI ne crée pas de doublon. |
-| Client (60 environ) | Entité sous la Root entity | Voir « Écart constaté sur les entités ». |
+| Client (60 environ) | Entité sous la Root entity | Voir « Incident #58 » (droit Modifier requis). |
 | Identifiant `GEN-T-…` | `external_id` | Traçabilité entre le ticket généré et le ticket GLPI. |
 | Sujet, corps | `name`, `content` | Le texte est échappé puis mis en paragraphes HTML (GLPI stocke du HTML). |
 | Date de création | `date`, `date_creation` | UTC, ISO 8601 avec décalage. |
@@ -280,22 +280,28 @@ Choix techniques :
 | RAM des conteneurs (`docker stats --no-stream`) | Avant : `glpi-app` 294 Mo, `glpi-db` 181 Mo. Pendant : 289 Mo et 182 Mo (CPU 65 % et 25 %). Après : 310 Mo et 183 Mo. |
 | Contrôle des données | Les 300 tickets lus par l'API : 300 `external_id` distincts, priorité, type et date de création identiques à ceux générés (0 écart) |
 
-### Écart constaté sur les entités
+### Incident #58 : entités créées sans nom (résolu)
 
-Les entités clientes **ne se créent pas correctement** avec le profil `API injection` : `POST /Administration/Entity` répond 201, mais l'entité lue ensuite n'a ni nom, ni commentaire, ni autre champ (tous à `null`), même sans parent. Un `PATCH` est refusé (403, droit de modification absent). Cause non établie ; hypothèses : le droit « mettre à jour » des entités manque au profil, ou anomalie de GLPI 11.0.11. À vérifier avec le développeur (essayer d'ajouter le droit de mise à jour au profil).
+**Symptôme** (8 novembre 2026) : `POST /Administration/Entity` répond **201** avec un identifiant, mais l'entité n'a pas de nom. GLPI l'affiche « (1) », « (2) »… En base, `name` et `completename` valent `NULL` et `level` vaut 0, au lieu de 2 pour une fille de la racine. Un `PATCH` sur l'entité répond 403. Les journaux de GLPI (`/var/glpi/logs` dans le conteneur) ne contiennent **aucune erreur**.
 
-Conséquences :
+**Cause** : dans `src/Entity.php` de GLPI 11.0.11, `prepareInputForAdd()` appelle `checkRightData()` pour tout utilisateur connecté. Cette fonction ne garde les champs de l'entité (`name`, `entities_id`, `level`, `completename`…) que si l'utilisateur a le droit **Modifier** (`UPDATE`) sur les entités, **même lors d'une création**. Le profil avait 37 en base, soit lire (1) + créer (4) + lire les notes (32). Le nom était donc retiré sans message, et l'insertion se faisait quand même.
 
-- Le script lit l'entité qu'il vient de créer et **s'arrête au premier nom perdu** (code de sortie 6), pour ne pas fabriquer des dizaines d'entités vides.
-- L'option `--no-entities` place tous les tickets dans la Root entity ; l'extraction n'a alors pas le nom du client (`client` vide).
-- **Résidu de l'essai** : 12 entités sans nom (identifiants 1 à 12) ont été créées par ces essais (dont deux sondes), et les 5 premiers tickets (`GEN-T-000001` à `GEN-T-000005`) sont rattachés aux entités 1 à 5. Le profil n'a pas le droit de les supprimer ; un Super-Admin doit les nettoyer dans l'interface (Administration > Entités).
+**Facteur aggravant** : GLPI met en cache dans la session la liste des entités accessibles ([glpi-project/glpi#14971](https://github.com/glpi-project/glpi/issues/14971)). Une entité créée reste invisible dans la session qui l'a créée, et dans l'interface jusqu'à une nouvelle connexion.
+
+**Correction** : ajout du droit Modifier à la ligne Entités du profil (Administration > Profils > `API injection` > Administration). La valeur passe de 37 à 39. La même requête de test enregistre alors le nom et le niveau 2.
+
+**Reproduire** : `uv run python scripts/repro_glpi_entity.py --name REPRO-TEST`. Le script crée une entité, la relit dans la même session puis dans une nouvelle, et affiche seulement les codes, l'identifiant, le nom et le niveau. Le débogage complet, étape par étape, est dans l'Issue #58.
+
+**Garde-fous conservés** :
+- le script d'injection relit chaque entité créée et **s'arrête au premier nom perdu**, avec le code de sortie 6 et un message qui indique la cause ;
+- l'option `--no-entities` place tous les tickets dans la Root entity ;
+- pour nettoyer, se déconnecter puis se reconnecter en Super-Admin, ce qui rafraîchit le cache. Purger ensuite les tickets **avant** les entités : GLPI accepte de supprimer une entité qui contient encore des tickets, et ces tickets resteraient alors rattachés à une entité disparue.
 
 ### Limites
 
 - Le **demandeur** n'est pas créé : l'API demande l'identifiant d'un utilisateur GLPI, et le profil d'injection n'a pas le droit d'en créer. Le nom et l'adresse du demandeur restent donc dans le texte (signature), et le champ « demandeur » de l'extraction est vide pour ces tickets.
 - Le **canal d'entrée** (courriel, portail…) et l'**équipe** ne sont pas transmis : ils sont vides à l'extraction.
 - Les tickets sont tous au statut « Nouveau » ; le cycle de vie d'un ticket n'est pas simulé.
-- Seule la racine des entités a été testée pour la création de tickets (voir ci-dessus).
 
 ## Contraintes techniques de la source (C1)
 

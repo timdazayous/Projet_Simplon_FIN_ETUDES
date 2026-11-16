@@ -37,7 +37,7 @@ EXIT_CONFIG = 2  # invalid option or missing configuration
 EXIT_AUTH = 3  # token refused
 EXIT_UNAVAILABLE = 4  # GLPI unreachable or overloaded
 EXIT_PERMISSION = 5  # the API profile lacks a right (403)
-EXIT_ENTITY = 6  # GLPI created an entity but did not store its name (see docs/glpi.md)
+EXIT_ENTITY = 6  # entity created without its name: profile lacks the entity UPDATE right (#58)
 
 # Priority P1..P4 -> GLPI priority (1 very low .. 5 very high). GLPI computes the priority from
 # urgency x impact; giving the same value to both returns the diagonal of its default matrix,
@@ -250,7 +250,11 @@ def run_injection(
         logger.error("Droit manquant pour le profil de l'utilisateur d'API (HTTP 403)")
     except EntityNameNotStored as error:
         report.entity_name_lost = True
-        logger.error("Entité %s créée sans nom : arrêt (voir docs/glpi.md)", error)
+        logger.error(
+            "Entité %s créée sans nom : arrêt. Cause connue (Issue #58) : le profil de "
+            "l'utilisateur d'API n'a pas le droit Modifier sur les entités (voir docs/glpi.md)",
+            error,
+        )
     except GlpiUnavailable as error:
         report.unavailable = True
         logger.error("GLPI indisponible : %s", error)
